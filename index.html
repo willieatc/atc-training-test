@@ -1287,7 +1287,7 @@ const PASS_SCORE = 80;
 // Web App URL 請設定在同層的 config.js。
 // GitHub Pages 目錄需同時放置 index.html 與 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V124-questions-title-all-dates-safe';
+const APP_BUILD_VERSION = 'V124-unlock-cloud-status-fix';
 
 const SHEETS_WEB_APP_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SHEETS_WEB_APP_URL) ? window.ATC_CONFIG.SHEETS_WEB_APP_URL.trim() : "";
 
@@ -1353,34 +1353,29 @@ const Backend = {
     },
     
     
-    unlockQuiz: async function(user, courseId) {
-        const course = this.state.courses.find(c => c.id === courseId);
-        const courseTitle = course ? course.title : '';
-        const result = await Backend.unlockQuiz(user, courseId, courseTitle);
-
-        if (result && result.ok) {
-            if (!this.state.quizLocks) this.state.quizLocks = {};
-            if (!this.state.quizUnlocks) this.state.quizUnlocks = {};
-            delete this.state.quizLocks[this.lockKey(user, courseId)];
-            this.state.quizUnlocks[this.unlockKey(user, courseId)] = {
-                u: user,
-                cid: courseId,
-                c: courseTitle,
-                d: DateUtil.format()
-            };
-
-            if (result.data && result.data.state) {
-                if (result.data.state.quizLocks && typeof result.data.state.quizLocks === 'object') this.state.quizLocks = result.data.state.quizLocks;
-                if (result.data.state.quizUnlocks && typeof result.data.state.quizUnlocks === 'object') this.state.quizUnlocks = result.data.state.quizUnlocks;
-                if (Array.isArray(result.data.state.records)) this.state.records = result.data.state.records;
-            }
-
-            localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
-            return true;
+    unlockQuiz: async function(userCode, courseId, courseTitle) {
+        if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.includes('請貼上')) {
+            this.setStatus('⚠️ 尚未設定 Web App URL', 'var(--warning-color)');
+            return { ok: false, error: '尚未設定 Web App URL' };
         }
-
-        return false;
+        try {
+            this.setStatus('解鎖同步中...', 'var(--warning-color)');
+            const res = await fetch(SHEETS_WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'unlockQuiz', userCode: userCode, courseId: courseId, courseTitle: courseTitle || '' })
+            });
+            const data = await res.json();
+            if (!data || data.ok !== true) throw new Error(data && data.error ? data.error : 'unlockQuiz failed');
+            this.setStatus('解鎖已同步', 'var(--success-color)');
+            return { ok: true, data: data };
+        } catch (err) {
+            console.error('unlockQuiz failed:', err);
+            this.setStatus('⚠️ 解鎖同步失敗', 'var(--danger-color)');
+            return { ok: false, error: String(err && err.message ? err.message : err) };
+        }
     },
+    
     deleteScoreRecords: async function(recordIds) {
         if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.includes('請貼上')) {
             this.setStatus('⚠️ 尚未設定 Web App URL', 'var(--warning-color)');
@@ -1874,29 +1869,31 @@ const App = {
         const courseTitle = course ? course.title : '';
         const result = await Backend.unlockQuiz(user, courseId, courseTitle);
 
-        if (result && result.ok) {
-            if (!this.state.quizLocks) this.state.quizLocks = {};
-            if (!this.state.quizUnlocks) this.state.quizUnlocks = {};
-            delete this.state.quizLocks[this.lockKey(user, courseId)];
-            this.state.quizUnlocks[this.unlockKey(user, courseId)] = {
-                u: user,
-                cid: courseId,
-                c: courseTitle,
-                d: DateUtil.format()
-            };
-
-            if (result.data && result.data.state) {
-                if (result.data.state.quizLocks && typeof result.data.state.quizLocks === 'object') this.state.quizLocks = result.data.state.quizLocks;
-                if (result.data.state.quizUnlocks && typeof result.data.state.quizUnlocks === 'object') this.state.quizUnlocks = result.data.state.quizUnlocks;
-                if (Array.isArray(result.data.state.records)) this.state.records = result.data.state.records;
-            }
-
-            localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
-            return true;
+        // 只有雲端 API 寫入成功，才更新本機解鎖狀態；失敗時不改本機鎖定狀態。
+        if (!(result && result.ok === true && result.data && result.data.ok === true)) {
+            return false;
         }
 
-        return false;
+        if (!this.state.quizLocks) this.state.quizLocks = {};
+        if (!this.state.quizUnlocks) this.state.quizUnlocks = {};
+        delete this.state.quizLocks[this.lockKey(user, courseId)];
+        this.state.quizUnlocks[this.unlockKey(user, courseId)] = {
+            u: user,
+            cid: courseId,
+            c: courseTitle,
+            d: DateUtil.format()
+        };
+
+        if (result.data && result.data.state) {
+            if (result.data.state.quizLocks && typeof result.data.state.quizLocks === 'object') this.state.quizLocks = result.data.state.quizLocks;
+            if (result.data.state.quizUnlocks && typeof result.data.state.quizUnlocks === 'object') this.state.quizUnlocks = result.data.state.quizUnlocks;
+            if (Array.isArray(result.data.state.records)) this.state.records = result.data.state.records;
+        }
+
+        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        return true;
     },
+    
     
     beginQuizSession: function() {
         if (this.isInstructor || !this.user || !this.activeCourse) return;
@@ -2758,10 +2755,16 @@ const Admin = {
             return await App.unlockQuiz(u, courseId);
         }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
 
-        Admin.applyScoreFilter();
-        App.updateLoginStatus();
-        alert(ok ? '✅ 解鎖已同步完成' : '⚠️ 已解鎖，但雲端同步失敗');
+        if (ok) {
+            Admin.applyScoreFilter();
+            App.updateLoginStatus();
+            alert('✅ 解鎖已同步完成');
+        } else {
+            Backend.setStatus('⚠️ 解鎖同步失敗，雲端未變更', 'var(--danger-color)');
+            alert('⚠️ 解鎖同步失敗，雲端資料未變更。請確認 Web App 已重新部署，並已執行 ?action=setup。');
+        }
     },
+    
     
     deleteScoreRecord: async function(recordIndex) {
         const r = App.state.records[recordIndex];
