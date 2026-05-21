@@ -1287,7 +1287,7 @@ const PASS_SCORE = 80;
 // Web App URL 請設定在同層的 config.js。
 // GitHub Pages 目錄需同時放置 index.html 與 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V124-score-timeout-admin-local-session';
+const APP_BUILD_VERSION = 'V124-admin-f5-fast-score-check';
 
 const SHEETS_WEB_APP_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SHEETS_WEB_APP_URL) ? window.ATC_CONFIG.SHEETS_WEB_APP_URL.trim() : "";
 
@@ -1457,8 +1457,25 @@ const Backend = {
         }
 
         const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-        const timeoutMs = 60000;
+        const timeoutMs = 12000;
         const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+        const verifyRecordWritten = async () => {
+            if (!(record && record.recordId)) return false;
+            for (let i = 0; i < 2; i++) {
+                try {
+                    this.setStatus('成績同步確認中...', 'var(--warning-color)');
+                    await new Promise(resolve => setTimeout(resolve, i === 0 ? 1200 : 2500));
+                    const loaded = await this.loadState();
+                    const found = loaded && Array.isArray(App.state.records) &&
+                        App.state.records.some(r => String(r.recordId || r.id || '') === String(record.recordId));
+                    if (found) return true;
+                } catch (verifyErr) {
+                    console.warn('submitScore verification failed:', verifyErr);
+                }
+            }
+            return false;
+        };
 
         try {
             this.setStatus('成績同步中...', 'var(--warning-color)');
@@ -1478,21 +1495,16 @@ const Backend = {
         } catch (err) {
             if (timer) clearTimeout(timer);
 
-            // 若只是前端等待逾時，但 Apps Script 其實已寫入，改用 getState 驗證 recordId，避免誤判同步失敗。
             const errMsg = String(err && err.message ? err.message : err);
             const isTimeout = (err && err.name === 'AbortError') || /timeout|逾時|abort/i.test(errMsg);
-            if (isTimeout && record && record.recordId) {
-                try {
-                    this.setStatus('成績同步確認中...', 'var(--warning-color)');
-                    const loaded = await this.loadState();
-                    const found = loaded && Array.isArray(App.state.records) && App.state.records.some(r => String(r.recordId || r.id || '') === String(record.recordId));
-                    if (found) {
-                        this.setStatus('成績已同步', 'var(--success-color)');
-                        return { ok: true, verifiedAfterTimeout: true };
-                    }
-                } catch (verifyErr) {
-                    console.warn('submitScore timeout verification failed:', verifyErr);
+            if (isTimeout) {
+                const verified = await verifyRecordWritten();
+                if (verified) {
+                    this.setStatus('成績已同步', 'var(--success-color)');
+                    return { ok: true, verifiedAfterTimeout: true };
                 }
+                this.setStatus('⚠️ 成績同步確認中', 'var(--warning-color)');
+                return { ok: false, pendingVerify: true, error: '前端等待逾時，尚未確認雲端結果' };
             }
 
             console.error('submitScore failed:', err);
@@ -1668,7 +1680,7 @@ const App = {
             console.error('markPendingCloudSync failed:', err);
         }
     },
-    syncScoreInBackground: function(record, timeoutMs = 65000) {
+    syncScoreInBackground: function(record, timeoutMs = 15000) {
         this.scoreSyncPending = true;
         const note = document.getElementById('resultPassNote');
         const baseText = note ? (note.getAttribute('data-result-base') || note.innerText.split('｜')[0] || '') : '';
@@ -1677,26 +1689,33 @@ const App = {
             note.style.color = 'var(--warning-color)';
         }
 
-        const finish = (ok, error) => {
+        const finish = (result) => {
             App.scoreSyncPending = false;
             if (!note || App.isInstructor) return;
-            if (ok) {
+
+            if (result && result.ok) {
                 App.removePendingScore(record);
                 note.innerText = `${baseText}｜成績已同步，可以關閉頁面。`;
                 note.style.color = baseText.includes('未及格') ? 'var(--danger-color)' : 'var(--success-color)';
                 App.clearQuizSession();
+                return;
+            }
+
+            App.queuePendingScore(record);
+            if (result && result.pendingVerify) {
+                note.innerText = `${baseText}｜成績已送出，雲端仍在確認中；可先保留此頁，稍後重新整理或請管理員查詢。`;
+                note.style.color = 'var(--warning-color)';
             } else {
-                App.queuePendingScore(record);
-                const errText = error ? `（${String(error).slice(0, 80)}）` : '';
+                const errText = result && result.error ? `（${String(result.error).slice(0, 80)}）` : '';
                 note.innerText = `${baseText}｜⚠️ 成績尚未確認同步，已先保存在本機，請稍後重新整理或通知管理員。${errText}`;
                 note.style.color = 'var(--danger-color)';
             }
         };
 
         Backend.submitScore(record).then(result => {
-            finish(!!(result && result.ok), result && result.error ? result.error : '');
+            finish(result || { ok: false });
         }).catch(err => {
-            finish(false, err && err.message ? err.message : err);
+            finish({ ok: false, error: err && err.message ? err.message : err });
         });
     },
     queuePendingScore: function(record) {
@@ -1830,7 +1849,9 @@ const App = {
     restoreAdminSession: function() {
         let active = false;
         try {
-            active = localStorage.getItem(this.ADMIN_SESSION_KEY) === '1' || sessionStorage.getItem(this.ADMIN_SESSION_KEY) === '1';
+            active = localStorage.getItem(this.ADMIN_PERSIST_KEY || 'ATC_ADMIN_PERSIST_LOGIN') === '1' ||
+                     localStorage.getItem(this.ADMIN_SESSION_KEY) === '1' ||
+                     sessionStorage.getItem(this.ADMIN_SESSION_KEY) === '1';
         } catch (e) {
             active = false;
         }
@@ -1855,25 +1876,34 @@ const App = {
         return true;
     },
     init: async function() {
-        // 先用本機資料立即渲染登入科目，避免等 Google Sheets 造成登入頁空白太久。
+        // F5 後優先恢復管理員後台，不先切回登入畫面。
+        const shouldRestoreAdminFirst = (() => {
+            try {
+                return localStorage.getItem(this.ADMIN_PERSIST_KEY || 'ATC_ADMIN_PERSIST_LOGIN') === '1' ||
+                       localStorage.getItem(this.ADMIN_SESSION_KEY) === '1' ||
+                       sessionStorage.getItem(this.ADMIN_SESSION_KEY) === '1';
+            } catch (e) {
+                return false;
+            }
+        })();
+
         if (!this.state.courses) this.state.courses = [];
         if (!this.state.records) this.state.records = [];
         if (!this.state.users) this.state.users = {};
         if (!this.state.quizLocks) this.state.quizLocks = {};
         if (!this.state.quizUnlocks) this.state.quizUnlocks = {};
-        this.state.courses.forEach(c => { if (!Number.isFinite(Number(c.passScore))) c.passScore = 70; });
         this.normalizeUsers();
+
+        if (shouldRestoreAdminFirst) {
+            this.restoreAdminSession();
+            return;
+        }
+
+        // 先用本機資料立即渲染登入科目，避免等 Google Sheets 造成登入頁空白太久。
+        this.state.courses.forEach(c => { if (!Number.isFinite(Number(c.passScore))) c.passScore = 80; });
         this.renderSelects();
         this.updateLoginStatus();
         this.syncUI();
-
-        const shouldRestoreAdminFirst = (() => {
-            try {
-                return localStorage.getItem(this.ADMIN_SESSION_KEY) === '1' || sessionStorage.getItem(this.ADMIN_SESSION_KEY) === '1';
-            } catch (e) {
-                return false;
-            }
-        })();
 
         if (!Backend.loaded) {
             await Backend.loadState();
@@ -1882,19 +1912,13 @@ const App = {
             if (!this.state.courses) this.state.courses = [];
             if (!this.state.records) this.state.records = [];
             if (!this.state.users) this.state.users = {};
-            this.state.courses.forEach(c => { if (!Number.isFinite(Number(c.passScore))) c.passScore = 70; });
+            this.state.courses.forEach(c => { if (!Number.isFinite(Number(c.passScore))) c.passScore = 80; });
             this.normalizeUsers();
-        }
-
-        if (shouldRestoreAdminFirst) {
-            this.restoreAdminSession();
-            return;
         }
 
         this.recoverInterruptedQuiz();
 
         // 相容舊版資料：若已有成績紀錄但尚未建立鎖定資料，啟動時自動補上鎖定狀態。
-        // 僅在真的補鎖時才儲存，避免每次回登入頁都覆蓋雲端資料。
         let lockChanged = false;
         (this.state.records || []).forEach(r => {
             const course = this.state.courses.find(c => c.id === r.cid || c.title === r.c);
@@ -2175,6 +2199,7 @@ const App = {
         if (this.isInstructor || prompt("管理密碼") === this.state.adminPw) {
             this.isInstructor = true;
             try {
+                localStorage.setItem(this.ADMIN_PERSIST_KEY || 'ATC_ADMIN_PERSIST_LOGIN', '1');
                 localStorage.setItem(this.ADMIN_SESSION_KEY, '1');
                 sessionStorage.setItem(this.ADMIN_SESSION_KEY, '1');
             } catch (e) {}
@@ -2192,6 +2217,7 @@ const App = {
         this.clearQuizSession();
         this.isInstructor = false;
         try {
+            localStorage.removeItem(this.ADMIN_PERSIST_KEY || 'ATC_ADMIN_PERSIST_LOGIN');
             localStorage.removeItem(this.ADMIN_SESSION_KEY);
             sessionStorage.removeItem(this.ADMIN_SESSION_KEY);
         } catch (e) {}
