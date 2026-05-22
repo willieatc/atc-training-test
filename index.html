@@ -1287,7 +1287,7 @@ const PASS_SCORE = 80;
 // Web App URL 請設定在同層的 config.js。
 // GitHub Pages 目錄需同時放置 index.html 與 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V124-admin-f5-fast-score-check';
+const APP_BUILD_VERSION = 'V124-edit-cache-overwrite-protect';
 
 const SHEETS_WEB_APP_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SHEETS_WEB_APP_URL) ? window.ATC_CONFIG.SHEETS_WEB_APP_URL.trim() : "";
 
@@ -1319,6 +1319,8 @@ const Backend = {
             const data = await res.json();
             if (!data || !data.ok) throw new Error(data && data.error ? data.error : '讀取失敗');
             const st = data.state || {};
+            App.cloudRevision = String(st.cloudRevision || data.cloudRevision || '');
+            localStorage.setItem('ATC_CLOUD_REVISION', App.cloudRevision);
             App.state = {
                 courses: Array.isArray(st.courses) ? st.courses : [],
                 records: Array.isArray(st.records) ? st.records : [],
@@ -1428,6 +1430,28 @@ const Backend = {
             return { ok: false, error: String(err && err.message ? err.message : err) };
         }
     },
+    deleteUsers: async function(userCodes) {
+        if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.includes('請貼上')) {
+            this.setStatus('⚠️ 尚未設定 Web App URL', 'var(--warning-color)');
+            return { ok: false, error: '尚未設定 Web App URL' };
+        }
+        try {
+            this.setStatus('帳號刪除同步中...', 'var(--warning-color)');
+            const res = await fetch(SHEETS_WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'deleteUsers', userCodes: userCodes || [] })
+            });
+            const data = await res.json();
+            if (!data || data.ok !== true) throw new Error(data && data.error ? data.error : 'deleteUsers failed');
+            this.setStatus('帳號刪除已同步', 'var(--success-color)');
+            return { ok: true, data: data };
+        } catch (err) {
+            console.error('deleteUsers failed:', err);
+            this.setStatus('⚠️ 帳號刪除同步失敗', 'var(--danger-color)');
+            return { ok: false, error: String(err && err.message ? err.message : err) };
+        }
+    },
     syncUsers: async function(users, userNames) {
         if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.includes('請貼上')) {
             this.setStatus('⚠️ 尚未設定 Web App URL', 'var(--warning-color)');
@@ -1519,26 +1543,45 @@ const Backend = {
         this.saving = true;
         this.setStatus('Google Sheets 儲存中...', 'var(--warning-color)');
         try {
-            const payload = { action: 'saveState', state: state };
+            const payload = {
+                action: 'saveState',
+                state: state,
+                baseRevision: App.cloudRevision || localStorage.getItem('ATC_CLOUD_REVISION') || ''
+            };
             const res = await fetch(SHEETS_WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
-            if (!data || !data.ok) throw new Error(data && data.error ? data.error : '儲存失敗');
+            if (!data || !data.ok) {
+                if (data && data.code === 'STALE_WRITE') {
+                    const err = new Error(data.error || '雲端資料已更新，為避免快取覆蓋，本次儲存已取消');
+                    err.code = 'STALE_WRITE';
+                    err.cloudRevision = data.cloudRevision || '';
+                    throw err;
+                }
+                throw new Error(data && data.error ? data.error : '儲存失敗');
+            }
+            if (data.cloudRevision) {
+                App.cloudRevision = String(data.cloudRevision);
+                localStorage.setItem('ATC_CLOUD_REVISION', App.cloudRevision);
+            }
             localStorage.removeItem('ATC_PENDING_CLOUD_SYNC');
             this.setStatus('Google Sheets 已同步', 'var(--success-color)');
             return true;
         } catch (err) {
             console.error('Google Sheets save failed:', err);
+            if (err && err.code === 'STALE_WRITE') {
+                this.setStatus('雲端資料已更新，已取消儲存避免快取覆蓋', 'var(--danger-color)');
+                throw err;
+            }
             this.setStatus('雲端儲存失敗，請檢查 Web App URL', 'var(--danger-color)');
             throw err;
         } finally {
             this.saving = false;
         }
-    }
-};
+    }};
 
 
 const DateUtil = {
@@ -1758,6 +1801,36 @@ const App = {
         this.savePromise = Backend.saveState(JSON.parse(JSON.stringify(this.state)));
         return this.savePromise;
     },
+    deleteUsersOnly: async function(userCodes, successText = '帳號刪除已同步完成', failureText = '帳號刪除同步失敗，雲端資料未變更') {
+        const codes = Array.from(new Set((Array.isArray(userCodes) ? userCodes : [])
+            .map(u => String(u || '').trim())
+            .filter(Boolean)));
+        if (!codes.length) return false;
+
+        const result = await Backend.deleteUsers(codes);
+
+        // 只有雲端刪除成功，才更新本機帳號資料。
+        if (!(result && result.ok === true && result.data && result.data.ok === true)) {
+            Backend.setStatus(failureText, 'var(--danger-color)');
+            alert(failureText);
+            return false;
+        }
+
+        if (result.data && result.data.state) {
+            if (result.data.state.users && typeof result.data.state.users === 'object') this.state.users = result.data.state.users;
+            if (result.data.state.userNames && typeof result.data.state.userNames === 'object') this.state.userNames = result.data.state.userNames;
+        } else {
+            codes.forEach(u => {
+                delete this.state.users[u];
+                if (this.state.userNames) delete this.state.userNames[u];
+            });
+        }
+
+        this.normalizeUsers();
+        localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
+        Backend.setStatus(successText, 'var(--success-color)');
+        return true;
+    },
     syncUsersOnly: async function(successText = '帳號資料已同步完成', failureText = '帳號資料已保存在本機，但雲端同步失敗') {
         this.normalizeUsers();
         localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
@@ -1784,6 +1857,13 @@ const App = {
             ok = await Backend.saveState(JSON.parse(JSON.stringify(this.state)));
         } catch (err) {
             console.error('saveWithNotice failed:', err);
+            if (err && err.code === 'STALE_WRITE') {
+                alert('雲端資料已被其他裝置或新版資料更新。為避免本機快取覆蓋雲端，本次儲存已取消；系統會重新載入最新雲端資料。');
+                await Backend.loadState();
+                if (App.renderSelects) App.renderSelects();
+                if (typeof Admin !== 'undefined' && Admin.renderEditor) Admin.renderEditor();
+                return false;
+            }
             ok = false;
         }
 
@@ -2753,6 +2833,15 @@ const Admin = {
             ok = await Backend.saveState(JSON.parse(JSON.stringify(App.state)));
         } catch (err) {
             console.error('Admin saveState failed:', err);
+            if (err && err.code === 'STALE_WRITE') {
+                ok = false;
+                Backend.setStatus('雲端資料已更新，本次儲存已取消以避免快取覆蓋', 'var(--danger-color)');
+                alert('雲端資料已被其他裝置或新版資料更新。為避免本機快取覆蓋雲端，本次儲存已取消；請重新載入後再編輯。');
+                await Backend.loadState();
+                Admin.renderEditor();
+                Admin.refreshCourseHeaderBadges && Admin.refreshCourseHeaderBadges();
+                return;
+            }
             ok = false;
         }
 
@@ -2859,15 +2948,15 @@ const Admin = {
         if (!confirm(`確定批次刪除 ${selected.length} 個登入帳號？既有測驗紀錄將會保留。`)) return;
 
         const ok = await Admin.withButtonStatus(async () => {
-            selected.forEach(u => {
-                delete App.state.users[u];
-                if (App.state.userNames) delete App.state.userNames[u];
-            });
-            return await App.syncUsersOnly('批次刪除帳號已同步完成', '批次刪除帳號已保存在本機，但雲端同步失敗');
+            return await App.deleteUsersOnly(selected, '批次刪除帳號已同步完成', '批次刪除帳號同步失敗，雲端資料未變更');
         }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
 
-        Admin.renderUsers();
-        alert(ok ? '✅ 已批次刪除帳號並同步完成' : '⚠️ 已批次刪除帳號，但雲端同步失敗');
+        if (ok) {
+            Admin.renderUsers();
+            alert('✅ 已批次刪除帳號並同步完成');
+        } else {
+            alert('⚠️ 批次刪除帳號同步失敗，雲端資料未變更');
+        }
     },
     
     
@@ -2892,13 +2981,15 @@ const Admin = {
         const u = decodeURIComponent(encodedU);
         if (confirm(`確定刪除「${u}」的登入帳號？既有測驗紀錄將會保留。`)) {
             const ok = await Admin.withButtonStatus(async () => {
-                delete App.state.users[u];
-                if (App.state.userNames) delete App.state.userNames[u];
-                return await App.syncUsersOnly('刪除帳號已同步完成', '刪除帳號已保存在本機，但雲端同步失敗');
+                return await App.deleteUsersOnly([u], '刪除帳號已同步完成', '刪除帳號同步失敗，雲端資料未變更');
             }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
 
-            Admin.renderUsers();
-            alert(ok ? '✅ 已刪除帳號並同步完成' : '⚠️ 已刪除帳號，但雲端同步失敗');
+            if (ok) {
+                Admin.renderUsers();
+                alert('✅ 已刪除帳號並同步完成');
+            } else {
+                alert('⚠️ 帳號刪除同步失敗，雲端資料未變更');
+            }
         }
     },
     
