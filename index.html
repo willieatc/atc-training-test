@@ -1403,6 +1403,110 @@ body.question-sort-active .editor-helper {
     font-weight: 700;
 }
 
+
+
+/* V132：排序操作視覺與游標修正 */
+.course-sortable-item,
+.course-sortable-item:active,
+.course-header,
+.course-drag-row,
+.course-drag-row:active {
+    cursor: default !important;
+}
+.course-drag-row {
+    cursor: pointer !important;
+}
+.course-drag-row strong::before {
+    content: none !important;
+    display: none !important;
+}
+.course-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.course-sort-handle,
+.q-sort-handle {
+    width: 34px;
+    height: 30px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #21262d;
+    color: var(--accent-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    line-height: 1;
+    box-shadow: 0 2px 7px rgba(0,0,0,0.16);
+    transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+.course-sort-handle:hover,
+.q-sort-handle:hover {
+    border-color: rgba(88,166,255,0.75);
+    background: #263241;
+}
+.course-sort-handle,
+.q-sort-handle,
+.course-sort-handle:hover,
+.q-sort-handle:hover {
+    cursor: grab !important;
+}
+.course-sort-handle:active,
+.q-sort-handle:active {
+    cursor: grabbing !important;
+    transform: scale(0.96);
+}
+.q-row-actions .q-move-btn {
+    width: 32px;
+    height: 30px;
+    min-width: 32px;
+    padding: 0;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer !important;
+    color: var(--accent-color);
+    background: #0d1117;
+    border-color: var(--border-color);
+}
+.q-row-actions .q-move-btn:hover:not(:disabled) {
+    border-color: rgba(88,166,255,0.7);
+    background: #21262d;
+    transform: translateY(-1px);
+}
+.q-row-actions .q-move-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+.q-row-actions .q-move-btn:disabled {
+    cursor: not-allowed !important;
+    opacity: .38;
+}
+.q-row-actions .btn:not(.q-sort-handle),
+.q-row-actions .btn:not(.q-sort-handle):hover {
+    cursor: pointer;
+}
+.q-row-actions .btn:disabled,
+.q-row-actions .btn:disabled:hover {
+    cursor: not-allowed;
+}
+.course-content input,
+.course-content textarea,
+.course-content select,
+.course-content .input-field {
+    cursor: text !important;
+}
+.course-content button,
+.course-content button * {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -2848,7 +2952,7 @@ const Admin = {
                     <div class="editor-helper" style="margin-top:6px;">編輯科目、教材、題庫及拖拉科目卡片調整順序後，記得按下儲存變更才會生效。</div>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-outline btn-sm" onclick="Admin.downloadTemplate()">📁 下載範本</button>
+                    <button class="btn btn-warning btn-sm" onclick="Admin.downloadTemplate()">📁 下載範本</button>
                     <button class="btn btn-primary btn-sm" onclick="Admin.addCourse()">➕ 新增科目</button>
                     <button class="btn btn-success btn-sm" onclick="Admin.saveAll(event)">💾 儲存變更</button>
                 </div>
@@ -2858,7 +2962,7 @@ const Admin = {
         document.getElementById('editorList').innerHTML = App.state.courses.length ? App.state.courses.map((c, ci) => `
             <div class="course-item ${App.lastOpenedCourseId == c.id ? 'open' : ''} course-sortable-item" data-id="${c.id}" draggable="true" ondragstart="Admin.courseDragStart(event, ${ci})" ondragover="Admin.courseDragOver(event, ${ci})" ondrop="Admin.courseDrop(event, ${ci})" ondragend="Admin.courseDragEnd(event)">
                 <div class="course-header course-drag-row" onclick="Admin.toggleCourse(${c.id}, this.parentElement)">
-                    <strong><span>${Admin.esc(c.title)}</span><span class="course-count-badge">${c.questions.length} 題｜及格 ${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80} 分</span></strong>
+                    <strong><span class="course-title-wrap"><button type="button" class="course-sort-handle" draggable="true" title="拖曳調整科目順序" aria-label="拖曳調整科目順序" onclick="event.stopPropagation()">☰</button><span>${Admin.esc(c.title)}</span></span><span class="course-count-badge">${c.questions.length} 題｜及格 ${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80} 分</span></strong>
                     <div class="course-order-actions">
                         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); Admin.delCourse(${ci})">刪除</button>
                     </div>
@@ -2896,7 +3000,7 @@ const Admin = {
                         <div class="question-toolbar">
                             <div>
                                 <h4>題庫內容</h4>
-                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；只有按住題號旁的 ［☰］ 才會拖曳排序，也可用「上移／下移」調整題目順序。</div>
+                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；只有按住題號旁的［☰］才會拖曳排序，也可用右側箭頭調整題目順序。</div>
                             </div>
                             <div class="question-actions">
                                 <button class="btn btn-outline btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
@@ -2911,8 +3015,8 @@ const Admin = {
                                 <div class="q-row-header">
                                     <span class="q-title-wrap"><button type="button" class="q-sort-handle handle" title="拖曳調整題目順序" aria-label="拖曳調整題目順序">☰</button> <strong class="handle-text">Q${qi+1}</strong></span>
                                     <div class="q-row-actions">
-                                        <button class="btn btn-outline btn-sm" ${qi===0?'disabled':''} onclick="Admin.moveQ(${ci}, ${qi}, -1)">↑ 上移</button>
-                                        <button class="btn btn-outline btn-sm" ${qi===c.questions.length-1?'disabled':''} onclick="Admin.moveQ(${ci}, ${qi}, 1)">↓ 下移</button>
+                                        <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===0?'disabled':''} title="上移一題" aria-label="上移一題" onclick="Admin.moveQ(${ci}, ${qi}, -1)">▲</button>
+                                        <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===c.questions.length-1?'disabled':''} title="下移一題" aria-label="下移一題" onclick="Admin.moveQ(${ci}, ${qi}, 1)">▼</button>
                                         <button class="btn btn-danger btn-sm" onclick="Admin.delQ(${ci}, ${qi})">移除</button>
                                     </div>
                                 </div>
@@ -3069,10 +3173,10 @@ const Admin = {
     },
     
     courseDragStart: function(event, index) {
-        const dragTarget = event.target && event.target.closest
-            ? event.target.closest('input, textarea, select, option, button, label, .course-content')
-            : null;
-        if (dragTarget) {
+        const isHandle = event.target && event.target.closest
+            ? !!event.target.closest('.course-sort-handle')
+            : false;
+        if (!isHandle) {
             event.preventDefault();
             return false;
         }
@@ -3597,7 +3701,7 @@ const Admin = {
     },
     exportScoreRecords: function() {
         const items = this.getFilteredScoreItems();
-        if (!items.length) return alert('目前沒有可匯出的測驗成績。');
+        if (!items.length) return alert('目前篩選條件下沒有可匯出的測驗成績。');
         const rows = [[
             '代字', '員工編號', '測驗科目', '分數', '及格分數', '及格狀態', '考核日期', '測驗狀態', '備註'
         ]];
@@ -3622,7 +3726,7 @@ const Admin = {
         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
         const now = new Date();
         const pad = n => String(n).padStart(2, '0');
-        const filename = `測驗成績_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+        const filename = `測驗成績_目前篩選_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.setAttribute('download', filename);
@@ -3633,7 +3737,7 @@ const Admin = {
     },
     exportAnswerDetails: function() {
         const items = this.getFilteredScoreItems();
-        if (!items.length) return alert('目前沒有可匯出的測驗成績。');
+        if (!items.length) return alert('目前篩選條件下沒有可匯出的測驗成績。');
         const rows = [[
             '代字', '員工編號', '姓名', '測驗科目', '總分', '及格分數', '考核日期',
             '題號', '題目', '選項', '作答序號', '作答內容', '正解序號', '正解內容', '是否正確'
@@ -3670,7 +3774,7 @@ const Admin = {
         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
         const now = new Date();
         const pad = n => String(n).padStart(2, '0');
-        const filename = `逐題作答紀錄_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+        const filename = `逐題作答紀錄_目前篩選_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.setAttribute('download', filename);
@@ -3711,7 +3815,7 @@ const Admin = {
 
         document.getElementById('scoreTableArea').innerHTML = `
             <div class="batch-toolbar">
-                <div style="font-size:13px; color:#8b949e;">目前顯示 ${filtered.length} 筆測驗紀錄</div>
+                <div style="font-size:13px; color:#8b949e;">目前顯示 ${filtered.length} 筆測驗紀錄｜匯出將依目前篩選結果產生檔案</div>
                 <div class="batch-actions">
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e;">
                         <input type="checkbox" class="row-check" id="selectVisibleScores" onchange="Admin.toggleVisibleScoreRecords(this.checked)"> 選取目前顯示紀錄
