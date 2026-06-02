@@ -2899,6 +2899,69 @@ const Admin = {
         const rows = document.querySelectorAll(`#ql-${ci} .q-row`);
         rows.forEach((row, idx) => { row.querySelector('.handle-text').innerText = `Q${idx + 1}`; });
     },
+    questionAutoScroll: null,
+    getQuestionScrollTarget: function() {
+        const candidates = [
+            document.getElementById('adminContent'),
+            document.getElementById('sec-admin'),
+            document.querySelector('#sec-admin .admin-content'),
+            document.scrollingElement || document.documentElement
+        ].filter(Boolean);
+        return candidates.find(el => (el.scrollHeight || 0) > (el.clientHeight || 0) + 8) || (document.scrollingElement || document.documentElement);
+    },
+    startQuestionAutoScroll: function(ci) {
+        Admin.stopQuestionAutoScroll();
+        const state = { ci, speed: 0, raf: null };
+        Admin.questionAutoScroll = state;
+        const onMove = (event) => Admin.updateQuestionAutoScroll(event);
+        state.onMove = onMove;
+        document.addEventListener('mousemove', onMove, { passive: true });
+        document.addEventListener('touchmove', onMove, { passive: true });
+        const step = () => {
+            if (Admin.questionAutoScroll !== state) return;
+            if (state.speed) {
+                const target = Admin.getQuestionScrollTarget();
+                if (target === document.documentElement || target === document.body || target === document.scrollingElement) {
+                    window.scrollBy(0, state.speed);
+                } else {
+                    target.scrollTop += state.speed;
+                }
+            }
+            state.raf = requestAnimationFrame(step);
+        };
+        state.raf = requestAnimationFrame(step);
+    },
+    updateQuestionAutoScroll: function(event) {
+        const state = Admin.questionAutoScroll;
+        if (!state) return;
+        const point = event && event.touches && event.touches[0] ? event.touches[0] : event;
+        if (!point || typeof point.clientY !== 'number') return;
+
+        const target = Admin.getQuestionScrollTarget();
+        const isPage = target === document.documentElement || target === document.body || target === document.scrollingElement;
+        const rect = isPage ? { top: 0, bottom: window.innerHeight } : target.getBoundingClientRect();
+        const threshold = 92;
+        const maxSpeed = 24;
+        let speed = 0;
+
+        if (point.clientY < rect.top + threshold) {
+            speed = -Math.ceil(((rect.top + threshold - point.clientY) / threshold) * maxSpeed);
+        } else if (point.clientY > rect.bottom - threshold) {
+            speed = Math.ceil(((point.clientY - (rect.bottom - threshold)) / threshold) * maxSpeed);
+        }
+
+        state.speed = Math.max(-maxSpeed, Math.min(maxSpeed, speed));
+    },
+    stopQuestionAutoScroll: function() {
+        const state = Admin.questionAutoScroll;
+        if (!state) return;
+        if (state.onMove) {
+            document.removeEventListener('mousemove', state.onMove);
+            document.removeEventListener('touchmove', state.onMove);
+        }
+        if (state.raf) cancelAnimationFrame(state.raf);
+        Admin.questionAutoScroll = null;
+    },
     downloadTemplate: function() {
         const rows = [
             ['題目 (Question)', '選項列表 (以半形逗號分隔)', '正確答案索引 (1-4)', '備註說明'],
@@ -3043,6 +3106,10 @@ const Admin = {
                 preventOnFilter: false,
                 animation: 180,
                 direction: 'vertical',
+                scroll: true,
+                bubbleScroll: true,
+                scrollSensitivity: 92,
+                scrollSpeed: 12,
                 forceFallback: true,
                 fallbackOnBody: true,
                 fallbackTolerance: 4,
@@ -3054,15 +3121,19 @@ const Admin = {
                 fallbackClass: 'q-row-fallback',
                 onChoose: function() {
                     document.body.classList.add('question-sort-active');
+                    Admin.startQuestionAutoScroll(ci);
                 },
                 onUnchoose: function() {
                     document.body.classList.remove('question-sort-active');
+                    Admin.stopQuestionAutoScroll();
                 },
-                onMove: function(evt) {
+                onMove: function(evt, originalEvent) {
+                    Admin.updateQuestionAutoScroll(originalEvent || (evt && evt.originalEvent));
                     return !!(evt && evt.related && evt.related.classList && evt.related.classList.contains('q-row'));
                 },
                 onEnd: function(evt) {
                     document.body.classList.remove('question-sort-active');
+                    Admin.stopQuestionAutoScroll();
                     Admin.reindexQuestions(ci);
                     Admin.sync();
                     App.saveLocalOnly();
