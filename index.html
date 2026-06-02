@@ -1214,7 +1214,7 @@
 }
 
 
-/* V125.4：成績同步中明顯遮罩提示 */
+/* V128：Supabase 資料庫寫入中明顯遮罩提示 */
 .score-sync-overlay {
     position: fixed;
     inset: 0;
@@ -1277,7 +1277,7 @@
                 <div style="text-align: center; margin-bottom: 20px;">
                     <h1 style="margin-bottom:6px;">ATC 訓練管理系統</h1>
                     <div style="color:#ffffff; font-size:16px; font-weight:900; letter-spacing:0.5px; margin-bottom:6px; text-shadow:0 2px 4px rgba(0,0,0,0.72), 0 0 18px rgba(0,0,0,0.55), 0 0 2px rgba(255,255,255,0.35);">RCTP 臺北機場管制臺</div>
-                    <div id="cloudStatus" style="display:none; font-size:12px; color:#8b949e; margin-bottom:10px;">本機資料模式</div>
+                    <div id="cloudStatus" style="display:none; font-size:12px; color:#8b949e; margin-bottom:10px;">本機測試模式：尚未連線 Supabase</div>
                     <span class="badge-instructor hidden">管理員模式</span>
                 </div>
                 <div style="background:#161b22; padding:30px; border-radius:12px; border:1px solid var(--border-color);">
@@ -1384,8 +1384,8 @@
     <div class="score-sync-card" role="alert" aria-live="assertive">
         <div class="score-sync-spinner" aria-hidden="true"></div>
         <div id="scoreSyncOverlayTitle" class="score-sync-title">成績儲存中</div>
-        <div id="scoreSyncOverlayMessage" class="score-sync-message">正在將成績寫入雲端，請勿關閉視窗或重新整理頁面。</div>
-        <div id="scoreSyncOverlayNote" class="score-sync-note">看到考核結果畫面後，才代表成績已完成同步。</div>
+        <div id="scoreSyncOverlayMessage" class="score-sync-message">正在將成績與逐題紀錄寫入 Supabase，請勿關閉視窗或重新整理頁面。</div>
+        <div id="scoreSyncOverlayNote" class="score-sync-note">看到考核結果畫面後，才代表 Supabase 已完成寫入。</div>
     </div>
 </div>
 
@@ -1395,11 +1395,11 @@ const PASS_SCORE = 80;
 // ================= Supabase 後端設定 =================
 // Supabase URL 與 anon key 請設定在同層的 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V126-supabase-compatible';
+const APP_BUILD_VERSION = 'V128-supabase-connection-status';
 
 const SUPABASE_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_URL) ? window.ATC_CONFIG.SUPABASE_URL.trim() : "";
 const SUPABASE_ANON_KEY = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_ANON_KEY) ? window.ATC_CONFIG.SUPABASE_ANON_KEY.trim() : "";
-// 保留舊變數名稱，避免舊程式碼參照時發生錯誤；Supabase 版不使用 Apps Script Web App URL。
+// V128：本版只使用 Supabase。
 const SHEETS_WEB_APP_URL = "";
 
 const Backend = {
@@ -1467,6 +1467,33 @@ const Backend = {
             note: String(r.note || '')
         };
     },
+    answerRowsFromRecord: function(record) {
+        const r = this.normalizeRecordForDb(record);
+        const details = Array.isArray(r.answerDetails) ? r.answerDetails : [];
+        return details.map((item, idx) => {
+            const no = Number(item.questionNo || item.no || (idx + 1));
+            const rowId = `${String(r.recordId)}_${String(no).padStart(3, '0')}`;
+            return {
+                id: rowId,
+                record_id: String(r.recordId),
+                user_code: String(r.u || r.userCode || ''),
+                employee_id: String(r.employeeId || ''),
+                user_name: String(r.name || ''),
+                course_id: String(r.cid || r.courseId || ''),
+                course_title: String(r.c || r.courseTitle || ''),
+                question_no: Number.isFinite(no) ? no : (idx + 1),
+                question_id: String(item.questionId || ''),
+                question_text: String(item.questionText || ''),
+                options_json: Array.isArray(item.options) ? item.options : [],
+                user_answer_index: Number.isFinite(Number(item.userAnswerIndex)) ? Number(item.userAnswerIndex) : null,
+                user_answer_text: String(item.userAnswerText || ''),
+                correct_answer_index: Number.isFinite(Number(item.correctAnswerIndex)) ? Number(item.correctAnswerIndex) : null,
+                correct_answer_text: String(item.correctAnswerText || ''),
+                is_correct: !!item.isCorrect,
+                submitted_at_text: String(r.d || r.date || '')
+            };
+        });
+    },
     recordFromRow: function(row) {
         const raw = row && row.record_json && typeof row.record_json === 'object' ? Object.assign({}, row.record_json) : {};
         const id = String((row && row.id) || raw.recordId || raw.id || '');
@@ -1518,11 +1545,11 @@ const Backend = {
     loadState: async function() {
         if (!this.enabled()) {
             App.cloudReady = false;
-            this.setStatus('本機資料模式', '#8b949e');
+            this.setStatus('本機測試模式：尚未連線 Supabase', '#8b949e');
             return false;
         }
         try {
-            this.setStatus('Supabase 同步中...', 'var(--warning-color)');
+            this.setStatus('Supabase 連線檢查中...', 'var(--warning-color)');
             const client = this.client();
             const settings = await this.getSettings();
             const recRes = await client.from('atc_quiz_records').select('*').order('submitted_at', { ascending: true });
@@ -1549,14 +1576,14 @@ const Backend = {
             localStorage.setItem('ATC_LAST_CLOUD_LOAD_TS', String(Date.now()));
             App.cloudReady = true;
             this.loaded = true;
-            this.setStatus('Supabase 已同步', 'var(--success-color)');
-            if (App.isInstructor && typeof Admin !== 'undefined' && Admin.refreshGsStatusForAdmin) Admin.refreshGsStatusForAdmin();
+            this.setStatus('Supabase 連線正常', 'var(--success-color)');
+            if (App.isInstructor && typeof Admin !== 'undefined' && Admin.refreshSupabaseStatusForAdmin) Admin.refreshSupabaseStatusForAdmin();
             return true;
         } catch (err) {
             console.error('Supabase load failed:', err);
             App.cloudReady = false;
-            this.setStatus('Supabase 讀取失敗，管理員儲存已停用', 'var(--danger-color)');
-            if (App.isInstructor && typeof Admin !== 'undefined' && Admin.refreshGsStatusForAdmin) Admin.refreshGsStatusForAdmin();
+            this.setStatus('Supabase 連線異常，管理員儲存已停用', 'var(--danger-color)');
+            if (App.isInstructor && typeof Admin !== 'undefined' && Admin.refreshSupabaseStatusForAdmin) Admin.refreshSupabaseStatusForAdmin();
             return false;
         }
     },
@@ -1564,7 +1591,7 @@ const Backend = {
         localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(state));
         if (!this.enabled()) return true;
         this.saving = true;
-        this.setStatus('Supabase 儲存中...', 'var(--warning-color)');
+        this.setStatus('Supabase 寫入中...', 'var(--warning-color)');
         try {
             const client = this.client();
             const settings = await this.getSettings();
@@ -1581,11 +1608,11 @@ const Backend = {
             App.cloudRevision = String(nextRevision);
             localStorage.setItem('ATC_CLOUD_REVISION', App.cloudRevision);
             localStorage.removeItem('ATC_PENDING_CLOUD_SYNC');
-            this.setStatus('Supabase 已同步', 'var(--success-color)');
+            this.setStatus('Supabase 連線正常', 'var(--success-color)');
             return true;
         } catch (err) {
             console.error('Supabase save failed:', err);
-            this.setStatus('Supabase 儲存失敗', 'var(--danger-color)');
+            this.setStatus('Supabase 寫入失敗', 'var(--danger-color)');
             throw err;
         } finally {
             this.saving = false;
@@ -1597,7 +1624,7 @@ const Backend = {
             return { ok: false, error: '尚未設定 Supabase' };
         }
         try {
-            this.setStatus('帳號資料同步中...', 'var(--warning-color)');
+            this.setStatus('帳號資料寫入 Supabase 中...', 'var(--warning-color)');
             const client = this.client();
             const settings = await this.getSettings();
             const nextRevision = Number(settings.revision || 1) + 1;
@@ -1608,18 +1635,18 @@ const Backend = {
             }).eq('id', true);
             if (error) throw error;
             App.cloudRevision = String(nextRevision);
-            this.setStatus('帳號資料已同步', 'var(--success-color)');
+            this.setStatus('帳號資料已寫入 Supabase', 'var(--success-color)');
             return { ok: true, data: { ok: true } };
         } catch (err) {
             console.error('syncUsers failed:', err);
-            this.setStatus('⚠️ 帳號資料同步失敗', 'var(--danger-color)');
+            this.setStatus('⚠️ 帳號資料寫入 Supabase 失敗', 'var(--danger-color)');
             return { ok: false, error: String(err && err.message ? err.message : err) };
         }
     },
     deleteUsers: async function(userCodes) {
         if (!this.enabled()) return { ok: false, error: '尚未設定 Supabase' };
         try {
-            this.setStatus('帳號刪除同步中...', 'var(--warning-color)');
+            this.setStatus('帳號刪除寫入 Supabase 中...', 'var(--warning-color)');
             const codes = Array.from(new Set((Array.isArray(userCodes) ? userCodes : []).map(x => String(x || '').trim()).filter(Boolean)));
             const client = this.client();
             const settings = await this.getSettings();
@@ -1629,11 +1656,11 @@ const Backend = {
             const nextRevision = Number(settings.revision || 1) + 1;
             const { error } = await client.from('atc_app_settings').update({ users: users, user_names: userNames, revision: nextRevision }).eq('id', true);
             if (error) throw error;
-            this.setStatus('帳號刪除已同步', 'var(--success-color)');
+            this.setStatus('帳號刪除已寫入 Supabase', 'var(--success-color)');
             return { ok: true, data: { ok: true, state: { users: users, userNames: userNames } } };
         } catch (err) {
             console.error('deleteUsers failed:', err);
-            this.setStatus('⚠️ 帳號刪除同步失敗', 'var(--danger-color)');
+            this.setStatus('⚠️ 帳號刪除寫入 Supabase 失敗', 'var(--danger-color)');
             return { ok: false, error: String(err && err.message ? err.message : err) };
         }
     },
@@ -1643,16 +1670,25 @@ const Backend = {
             return { ok: false, error: '尚未設定 Supabase' };
         }
         try {
-            this.setStatus('成績同步中...', 'var(--warning-color)');
+            this.setStatus('成績寫入 Supabase 中...', 'var(--warning-color)');
             const client = this.client();
             const row = this.dbRowFromRecord(record);
             const { error } = await client.from('atc_quiz_records').upsert(row, { onConflict: 'id' });
             if (error) throw error;
-            this.setStatus('成績已同步', 'var(--success-color)');
-            return { ok: true, data: { ok: true } };
+
+            const answerRows = this.answerRowsFromRecord(Object.assign({}, record, { recordId: row.id }));
+            if (answerRows.length) {
+                const del = await client.from('atc_quiz_answers').delete().eq('record_id', row.id);
+                if (del.error) throw del.error;
+                const ans = await client.from('atc_quiz_answers').insert(answerRows);
+                if (ans.error) throw ans.error;
+            }
+
+            this.setStatus('成績與逐題紀錄已寫入 Supabase', 'var(--success-color)');
+            return { ok: true, data: { ok: true, answerCount: answerRows.length } };
         } catch (err) {
             console.error('submitScore failed:', err);
-            this.setStatus('⚠️ 成績同步失敗', 'var(--danger-color)');
+            this.setStatus('⚠️ 成績寫入 Supabase 失敗', 'var(--danger-color)');
             return { ok: false, error: String(err && err.message ? err.message : err) };
         }
     },
@@ -1662,7 +1698,7 @@ const Backend = {
     batchUnlockQuiz: async function(items) {
         if (!this.enabled()) return { ok: false, error: '尚未設定 Supabase' };
         try {
-            this.setStatus('解鎖同步中...', 'var(--warning-color)');
+            this.setStatus('解鎖資料寫入 Supabase 中...', 'var(--warning-color)');
             const clean = (Array.isArray(items) ? items : []).map(item => ({
                 userCode: String(item.userCode || item.u || '').trim(),
                 courseId: String(item.courseId || item.cid || '').trim(),
@@ -1679,18 +1715,18 @@ const Backend = {
             const { error } = await client.from('atc_app_settings').update({ quiz_unlocks: quizUnlocks, revision: nextRevision }).eq('id', true);
             if (error) throw error;
             const latest = await this.loadState();
-            this.setStatus('解鎖已同步', 'var(--success-color)');
+            this.setStatus('解鎖資料已寫入 Supabase', 'var(--success-color)');
             return { ok: true, data: { ok: true, state: latest ? App.state : { quizUnlocks } } };
         } catch (err) {
             console.error('batchUnlockQuiz failed:', err);
-            this.setStatus('⚠️ 解鎖同步失敗', 'var(--danger-color)');
+            this.setStatus('⚠️ 解鎖資料寫入 Supabase 失敗', 'var(--danger-color)');
             return { ok: false, error: String(err && err.message ? err.message : err) };
         }
     },
     deleteScoreRecords: async function(recordIds) {
         if (!this.enabled()) return { ok: false, error: '尚未設定 Supabase' };
         try {
-            this.setStatus('刪除測驗紀錄同步中...', 'var(--warning-color)');
+            this.setStatus('刪除測驗紀錄寫入 Supabase 中...', 'var(--warning-color)');
             const ids = (Array.isArray(recordIds) ? recordIds : []).map(x => String(x || '').trim()).filter(Boolean);
             const client = this.client();
             if (ids.length) {
@@ -1698,11 +1734,11 @@ const Backend = {
                 if (error) throw error;
             }
             await this.loadState();
-            this.setStatus('刪除測驗紀錄已同步', 'var(--success-color)');
+            this.setStatus('刪除測驗紀錄已寫入 Supabase', 'var(--success-color)');
             return { ok: true, data: { ok: true, state: App.state } };
         } catch (err) {
             console.error('deleteScoreRecords failed:', err);
-            this.setStatus('⚠️ 刪除測驗紀錄同步失敗', 'var(--danger-color)');
+            this.setStatus('⚠️ 刪除測驗紀錄寫入 Supabase 失敗', 'var(--danger-color)');
             return { ok: false, error: String(err && err.message ? err.message : err) };
         }
     }
@@ -1732,7 +1768,7 @@ const Backup = {
             // 優先使用目前系統狀態；若 App 尚未可用，改從 localStorage 讀取。
             try {
                 if (typeof App !== "undefined" && App && App.state) {
-                    // 若可連線雲端，先嘗試同步最新資料。
+                    // 若可連線 Supabase，先嘗試讀取最新資料。
                     if (typeof Backend !== "undefined" && Backend.enabled && Backend.enabled()) {
                         try {
                             await Backend.loadState();
@@ -1812,9 +1848,9 @@ const Backup = {
                 }
 
                 App.state = state;
-                const ok = await App.saveWithNotice('本地備份已匯入並同步完成', '本地備份已匯入本機，但雲端同步失敗');
+                const ok = await App.saveWithNotice('本地備份已匯入並寫入 Supabase', '本地備份已匯入本機，但 Supabase 寫入失敗');
                 if (!ok && Backend.enabled()) {
-                    alert("⚠️ 本地備份已匯入本機，但雲端同步失敗，請確認後再操作。");
+                    alert("⚠️ 本地備份已匯入本機，但 Supabase 寫入失敗，請確認後再操作。");
                 } else {
                     alert("✅ 本地備份已匯入");
                 }
@@ -1852,7 +1888,7 @@ const App = {
         const note = document.getElementById('resultPassNote');
         const baseText = note ? (note.getAttribute('data-result-base') || note.innerText.split('｜')[0] || '') : '';
         if (note && !App.isInstructor) {
-            note.innerText = `${baseText}｜成績同步中，請勿關閉網頁...`;
+            note.innerText = `${baseText}｜成績寫入 Supabase 中，請勿關閉網頁...`;
             note.style.color = 'var(--warning-color)';
         }
 
@@ -1862,7 +1898,7 @@ const App = {
 
             if (result && result.ok) {
                 App.removePendingScore(record);
-                note.innerText = `${baseText}｜成績已同步，可以關閉頁面。`;
+                note.innerText = `${baseText}｜成績已寫入 Supabase，可以關閉頁面。`;
                 note.style.color = baseText.includes('未及格') ? 'var(--danger-color)' : 'var(--success-color)';
                 App.clearQuizSession();
                 return;
@@ -1870,11 +1906,11 @@ const App = {
 
             App.queuePendingScore(record);
             if (result && result.pendingVerify) {
-                note.innerText = `${baseText}｜成績已送出，雲端仍在確認中；可先保留此頁，稍後重新整理或請管理員查詢。`;
+                note.innerText = `${baseText}｜成績已送出，Supabase 仍在確認中；可先保留此頁，稍後重新整理或請管理員查詢。`;
                 note.style.color = 'var(--warning-color)';
             } else {
                 const errText = result && result.error ? `（${String(result.error).slice(0, 80)}）` : '';
-                note.innerText = `${baseText}｜⚠️ 成績尚未確認同步，已先保存在本機，請稍後重新整理或通知管理員。${errText}`;
+                note.innerText = `${baseText}｜⚠️ 成績尚未確認寫入 Supabase，已先保存在本機，請稍後重新整理或通知管理員。${errText}`;
                 note.style.color = 'var(--danger-color)';
             }
         };
@@ -1925,7 +1961,7 @@ const App = {
         this.savePromise = Backend.saveState(JSON.parse(JSON.stringify(this.state)));
         return this.savePromise;
     },
-    deleteUsersOnly: async function(userCodes, successText = '帳號刪除已同步完成', failureText = '帳號刪除同步失敗，雲端資料未變更') {
+    deleteUsersOnly: async function(userCodes, successText = '帳號刪除已寫入 Supabase完成', failureText = '帳號刪除寫入 Supabase 失敗，資料庫未變更') {
         const codes = Array.from(new Set((Array.isArray(userCodes) ? userCodes : [])
             .map(u => String(u || '').trim())
             .filter(Boolean)));
@@ -1933,7 +1969,7 @@ const App = {
 
         const result = await Backend.deleteUsers(codes);
 
-        // 只有雲端刪除成功，才更新本機帳號資料。
+        // 只有 Supabase 刪除成功，才更新本機帳號資料。
         if (!(result && result.ok === true && result.data && result.data.ok === true)) {
             Backend.setStatus(failureText, 'var(--danger-color)');
             alert(failureText);
@@ -1955,7 +1991,7 @@ const App = {
         Backend.setStatus(successText, 'var(--success-color)');
         return true;
     },
-    syncUsersOnly: async function(successText = '帳號資料已同步完成', failureText = '帳號資料已保存在本機，但雲端同步失敗') {
+    syncUsersOnly: async function(successText = '帳號資料已寫入 Supabase完成', failureText = '帳號資料已保存在本機，但 Supabase 寫入失敗') {
         this.normalizeUsers();
         localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
         const result = await Backend.syncUsers(JSON.parse(JSON.stringify(this.state.users)), JSON.parse(JSON.stringify(this.state.userNames || {})));
@@ -1970,19 +2006,19 @@ const App = {
     saveWithNotice: async function(successText, failureText) {
         localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(this.state));
         if (Backend.enabled() && !this.cloudReady) {
-            Backend.setStatus('尚未成功讀取雲端，禁止儲存以避免覆蓋', 'var(--danger-color)');
-            alert('尚未成功讀取雲端資料。為避免本機舊資料覆蓋雲端，請重新整理並確認 Google Sheets 已同步後再操作。');
+            Backend.setStatus('尚未成功連線 Supabase，禁止儲存以避免覆蓋資料庫', 'var(--danger-color)');
+            alert('尚未成功連線 Supabase。為避免本機舊資料覆蓋資料庫，請重新整理並確認 Supabase 連線正常後再操作。');
             return false;
         }
 
-        Backend.setStatus('Google Sheets 同步中...', 'var(--warning-color)');
+        Backend.setStatus('Supabase 寫入中...', 'var(--warning-color)');
         let ok = false;
         try {
             ok = await Backend.saveState(JSON.parse(JSON.stringify(this.state)));
         } catch (err) {
             console.error('saveWithNotice failed:', err);
             if (err && err.code === 'STALE_WRITE') {
-                alert('雲端資料已被其他裝置或新版資料更新。為避免本機快取覆蓋雲端，本次儲存已取消；系統會重新載入最新雲端資料。');
+                alert('Supabase 資料已被其他裝置或新版資料更新。為避免本機快取覆蓋資料庫，本次儲存已取消；系統會重新載入最新資料。');
                 await Backend.loadState();
                 if (App.renderSelects) App.renderSelects();
                 if (typeof Admin !== 'undefined' && Admin.renderEditor) Admin.renderEditor();
@@ -1992,12 +2028,12 @@ const App = {
         }
 
         if (ok) {
-            Backend.setStatus(successText || 'Google Sheets 已同步', 'var(--success-color)');
+            Backend.setStatus(successText || 'Supabase 連線正常', 'var(--success-color)');
             return true;
         }
 
-        Backend.setStatus(failureText || '雲端同步失敗，已保留本機資料', 'var(--danger-color)');
-        alert(failureText || '雲端同步失敗，資料已先保存在本機。請檢查 Web App URL／部署。');
+        Backend.setStatus(failureText || 'Supabase 寫入失敗，已保留本機資料', 'var(--danger-color)');
+        alert(failureText || 'Supabase 寫入失敗，資料已先保存在本機。請檢查 Supabase URL／anon key／RLS 權限設定。');
         return false;
     },
     saveLocalOnly: function() {
@@ -2010,8 +2046,8 @@ const App = {
         const snapshot = JSON.parse(JSON.stringify(this.state));
         this.savePromise = Backend.saveState(snapshot)
             .catch(err => {
-                console.error('Background cloud save failed:', err);
-                Backend.setStatus('雲端同步失敗，已保留本機資料', 'var(--danger-color)');
+                console.error('Background Supabase save failed:', err);
+                Backend.setStatus('Supabase 寫入失敗，已保留本機資料', 'var(--danger-color)');
             });
         return this.savePromise;
     },
@@ -2074,11 +2110,11 @@ const App = {
         this.syncUI();
         this.switchAdmin(this.currentAdminTab || 'score');
 
-        // F5 重新載入後不重新登入，只重新確認 Google Sheets 同步狀態。
+        // F5 重新載入後不重新登入，只重新確認 Supabase 連線狀態。
         setTimeout(async () => {
-            Backend.setStatus('Google Sheets 同步狀態確認中...', 'var(--warning-color)');
+            Backend.setStatus('Supabase 連線狀態確認中...', 'var(--warning-color)');
             await Backend.loadState();
-            if (Admin.refreshGsStatusForAdmin) Admin.refreshGsStatusForAdmin();
+            if (Admin.refreshSupabaseStatusForAdmin) Admin.refreshSupabaseStatusForAdmin();
             if (this.currentAdminTab === 'score' && Admin.applyScoreFilter) Admin.applyScoreFilter();
             else if (this.currentAdminTab === 'rec' && Admin.renderUsers) Admin.renderUsers();
             else if (this.currentAdminTab === 'edit' && Admin.renderEditor) Admin.renderEditor();
@@ -2110,7 +2146,7 @@ const App = {
             return;
         }
 
-        // 先用本機資料立即渲染登入科目，避免等 Google Sheets 造成登入頁空白太久。
+        // 先用本機資料立即渲染登入科目，避免等待 Supabase 造成登入頁空白太久。
         this.state.courses.forEach(c => { if (!Number.isFinite(Number(c.passScore))) c.passScore = 80; });
         this.renderSelects();
         this.updateLoginStatus();
@@ -2190,7 +2226,7 @@ const App = {
 
         const result = await Backend.batchUnlockQuiz(cleanItems);
 
-        // 只有雲端 API 成功，才更新本機解鎖狀態。
+        // 只有 Supabase API 成功，才更新本機解鎖狀態。
         if (!(result && result.ok === true && result.data && result.data.ok === true)) {
             return false;
         }
@@ -2222,7 +2258,7 @@ const App = {
         const courseTitle = course ? course.title : '';
         const result = await Backend.unlockQuiz(user, courseId, courseTitle);
 
-        // 只有雲端 API 寫入成功，才更新本機解鎖狀態；失敗時不改本機鎖定狀態。
+        // 只有 Supabase API 寫入成功，才更新本機解鎖狀態；失敗時不改本機鎖定狀態。
         if (!(result && result.ok === true && result.data && result.data.ok === true)) {
             return false;
         }
@@ -2334,7 +2370,7 @@ const App = {
         this.normalizeUsers();
         if (!Object.prototype.hasOwnProperty.call(this.state.users, code)) {
             this.state.users[code] = { employeeId: '', name: '', pw: '' };
-            const ok = await this.syncUsersOnly('帳號已建立並同步完成', '帳號建立同步失敗，雲端資料未變更。請確認 Web App 已重新部署。');
+            const ok = await this.syncUsersOnly('帳號已建立並寫入 Supabase', '帳號建立寫入 Supabase 失敗，資料庫未變更。請確認 Supabase 連線與權限設定。');
             if (!ok && Backend.enabled()) return;
         }
         this.user = code;
@@ -2420,7 +2456,7 @@ const App = {
             this.switchAdmin('score');
 
             setTimeout(() => {
-                if (Admin.refreshGsStatusForAdmin) Admin.refreshGsStatusForAdmin();
+                if (Admin.refreshSupabaseStatusForAdmin) Admin.refreshSupabaseStatusForAdmin();
             }, 0);
         } else {
             alert("拒絕");
@@ -2481,7 +2517,7 @@ const App = {
                 if (content) content.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 80);
         }
-        setTimeout(() => Admin.refreshGsStatusForAdmin(), 0);
+        setTimeout(() => Admin.refreshSupabaseStatusForAdmin(), 0);
 
     },
     scrollSide: function(dir) {
@@ -2729,7 +2765,7 @@ const Admin = {
             App.state.courses.push({id:Date.now(), title:t, embedUrl:"", passScore: 80, questions:[]});
             App.saveLocalOnly();
             Admin.renderEditor();
-            Backend.setStatus('已新增科目，請按「儲存變更」同步到 Google Sheets', 'var(--warning-color)');
+            Backend.setStatus('已新增科目，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
         }
     },
     addQ: function(ci) {
@@ -2751,11 +2787,11 @@ const Admin = {
 
         const ok = await Admin.withButtonStatus(async () => {
             course.questions = [];
-            return await App.saveWithNotice('刪除題目已同步完成', '刪除題目已保存在本機，但雲端同步失敗');
-        }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+            return await App.saveWithNotice('刪除題目已寫入 Supabase', '刪除題目已保存在本機，但 Supabase 寫入失敗');
+        }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         Admin.renderEditor();
-        alert(ok ? "✅ 已刪除所有題目並同步完成" : "⚠️ 已刪除所有題目，但雲端同步失敗");
+        alert(ok ? "✅ 已刪除所有題目並寫入 Supabase" : "⚠️ 已刪除所有題目，但 Supabase 寫入失敗");
     },
     
     courseDragStart: function(event, index) {
@@ -2824,11 +2860,11 @@ const Admin = {
 
         const ok = await Admin.withButtonStatus(async () => {
             App.state.courses.splice(ci, 1);
-            return await App.saveWithNotice('刪除科目已同步完成', '刪除科目已保存在本機，但雲端同步失敗');
-        }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+            return await App.saveWithNotice('刪除科目已寫入 Supabase', '刪除科目已保存在本機，但 Supabase 寫入失敗');
+        }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         Admin.renderEditor();
-        alert(ok ? '✅ 已刪除科目並同步完成' : '⚠️ 已刪除科目，但雲端同步失敗');
+        alert(ok ? '✅ 已刪除科目並寫入 Supabase' : '⚠️ 已刪除科目，但 Supabase 寫入失敗');
     },
     
     impCSV: function(e, ci) {
@@ -2894,7 +2930,7 @@ const Admin = {
             }
         });
     },
-    showGsStatusForAdmin: function(text, color) {
+    showSupabaseStatusForAdmin: function(text, color) {
         let el = document.getElementById('adminGsStatus');
         if (!el) {
             const sec = document.getElementById('sec-admin');
@@ -2917,27 +2953,27 @@ const Admin = {
         el.style.color = color || 'var(--warning-color)';
         el.innerText = text || '';
     },
-    refreshGsStatusForAdmin: function() {
-        // 重新整理後仍保留管理員登入，只更新同步狀態。
+    refreshSupabaseStatusForAdmin: function() {
+        // 重新整理後仍保留管理員登入，只更新 Supabase 連線狀態。
         if (!App.isInstructor) return;
         if (!Backend.enabled()) {
-            this.showGsStatusForAdmin('目前為本機模式：尚未設定 Google Sheets Web App URL', 'var(--warning-color)');
+            this.showSupabaseStatusForAdmin('目前為本機測試模式：尚未設定 Supabase URL／anon key', 'var(--warning-color)');
             return;
         }
         if (App.cloudReady) {
-            this.showGsStatusForAdmin('Google Sheets 已同步，可以進行後台操作。', 'var(--success-color)');
-            Backend.setStatus('Google Sheets 已同步', 'var(--success-color)');
+            this.showSupabaseStatusForAdmin('Supabase 連線正常，可以進行後台操作。', 'var(--success-color)');
+            Backend.setStatus('Supabase 連線正常', 'var(--success-color)');
         } else {
-            this.showGsStatusForAdmin('Google Sheets 尚未完成同步，請先重新整理或等待同步完成，避免覆蓋雲端資料。', 'var(--danger-color)');
-            Backend.setStatus('Google Sheets 尚未完成同步', 'var(--danger-color)');
+            this.showSupabaseStatusForAdmin('Supabase 連線尚未確認，請先重新整理或等待連線正常，避免覆蓋資料庫資料。', 'var(--danger-color)');
+            Backend.setStatus('Supabase 連線尚未確認', 'var(--danger-color)');
         }
     },
     withButtonStatus: async function(actionFn, options = {}) {
         const btn = (document.activeElement && document.activeElement.tagName === 'BUTTON') ? document.activeElement : null;
         const oldText = btn ? btn.innerText : '';
-        const syncingText = options.syncingText || '同步中...';
-        const successText = options.successText || '✅ 已同步';
-        const failText = options.failText || '⚠️ 同步失敗';
+        const syncingText = options.syncingText || '寫入中...';
+        const successText = options.successText || '✅ 已寫入';
+        const failText = options.failText || '⚠️ 寫入失敗';
 
         if (btn) {
             btn.disabled = true;
@@ -2967,8 +3003,8 @@ const Admin = {
         Admin.sync();
 
         if (!App.cloudReady && Backend.enabled()) {
-            alert('尚未成功讀取雲端資料。為避免本機舊資料覆蓋雲端，請重新整理並確認 Google Sheets 已同步後再儲存。');
-            Backend.setStatus('尚未成功讀取雲端，禁止儲存以避免覆蓋', 'var(--danger-color)');
+            alert('尚未成功連線 Supabase。為避免本機舊資料覆蓋資料庫，請重新整理並確認 Supabase 連線正常後再儲存。');
+            Backend.setStatus('尚未成功連線 Supabase，禁止儲存以避免覆蓋資料庫', 'var(--danger-color)');
             return;
         }
 
@@ -2976,7 +3012,7 @@ const Admin = {
         const oldText = btn ? btn.innerText : '';
         if (btn) {
             btn.disabled = true;
-            btn.innerText = '儲存同步中...';
+            btn.innerText = '儲存寫入中...';
         }
 
         App.saveLocalOnly();
@@ -2990,8 +3026,8 @@ const Admin = {
             console.error('Admin saveState failed:', err);
             if (err && err.code === 'STALE_WRITE') {
                 ok = false;
-                Backend.setStatus('雲端資料已更新，本次儲存已取消以避免快取覆蓋', 'var(--danger-color)');
-                alert('雲端資料已被其他裝置或新版資料更新。為避免本機快取覆蓋雲端，本次儲存已取消；請重新載入後再編輯。');
+                Backend.setStatus('Supabase 資料已更新，本次儲存已取消以避免快取覆蓋', 'var(--danger-color)');
+                alert('Supabase 資料已被其他裝置或新版資料更新。為避免本機快取覆蓋資料庫，本次儲存已取消；請重新載入後再編輯。');
                 await Backend.loadState();
                 Admin.renderEditor();
                 Admin.refreshCourseHeaderBadges && Admin.refreshCourseHeaderBadges();
@@ -3001,7 +3037,7 @@ const Admin = {
         }
 
         if (btn) {
-            btn.innerText = ok ? '✅ 已同步' : '⚠️ 同步失敗';
+            btn.innerText = ok ? '✅ 已寫入' : '⚠️ 寫入失敗';
             setTimeout(() => {
                 btn.disabled = false;
                 btn.innerText = oldText || '💾 儲存變更';
@@ -3011,11 +3047,11 @@ const Admin = {
         const cloudStatus = document.getElementById('cloudStatus');
         if (cloudStatus && App.isInstructor) {
             cloudStatus.style.display = 'block';
-            cloudStatus.innerText = ok ? 'Google Sheets 已同步' : '雲端同步失敗，已保留本機資料';
+            cloudStatus.innerText = ok ? 'Supabase 連線正常' : 'Supabase 寫入失敗，已保留本機資料';
             cloudStatus.style.color = ok ? 'var(--success-color)' : 'var(--danger-color)';
         }
 
-        if (!ok) alert('雲端同步失敗，資料已先保存在本機。請確認 Web App URL／Apps Script 部署後再試。');
+        if (!ok) alert('Supabase 寫入失敗，資料已先保存在本機。請確認 Supabase URL／anon key／RLS 權限設定後再試。');
     },
     
     renderUsers: function() {
@@ -3103,14 +3139,14 @@ const Admin = {
         if (!confirm(`確定批次刪除 ${selected.length} 個登入帳號？既有測驗紀錄將會保留。`)) return;
 
         const ok = await Admin.withButtonStatus(async () => {
-            return await App.deleteUsersOnly(selected, '批次刪除帳號已同步完成', '批次刪除帳號同步失敗，雲端資料未變更');
-        }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+            return await App.deleteUsersOnly(selected, '批次刪除帳號已寫入 Supabase', '批次刪除帳號寫入 Supabase 失敗，資料庫未變更');
+        }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         if (ok) {
             Admin.renderUsers();
-            alert('✅ 已批次刪除帳號並同步完成');
+            alert('✅ 已批次刪除帳號並寫入 Supabase');
         } else {
-            alert('⚠️ 批次刪除帳號同步失敗，雲端資料未變更');
+            alert('⚠️ 批次刪除帳號寫入 Supabase 失敗，資料庫未變更');
         }
     },
     
@@ -3127,8 +3163,8 @@ const Admin = {
         const confirmPw = prompt("請再次輸入新的管理員密碼：");
         if (newPw !== confirmPw) return alert("兩次輸入的密碼不一致，未變更。");
         App.state.adminPw = newPw;
-        const ok = await App.saveWithNotice('管理員密碼已同步完成', '管理員密碼同步失敗，雲端資料未變更');
-        alert(ok ? "✅ 管理員密碼已修改並同步" : "⚠️ 管理員密碼未同步，請重新整理後再試");
+        const ok = await App.saveWithNotice('管理員密碼已寫入 Supabase', '管理員密碼寫入 Supabase 失敗，資料庫未變更');
+        alert(ok ? "✅ 管理員密碼已修改並寫入 Supabase" : "⚠️ 管理員密碼未寫入 Supabase，請重新整理後再試");
     },
     changeUserPassword: function(encodedU) { this.resetUserPassword(encodedU); },
     
@@ -3136,14 +3172,14 @@ const Admin = {
         const u = decodeURIComponent(encodedU);
         if (confirm(`確定刪除「${u}」的登入帳號？既有測驗紀錄將會保留。`)) {
             const ok = await Admin.withButtonStatus(async () => {
-                return await App.deleteUsersOnly([u], '刪除帳號已同步完成', '刪除帳號同步失敗，雲端資料未變更');
-            }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+                return await App.deleteUsersOnly([u], '刪除帳號已寫入 Supabase', '刪除帳號寫入 Supabase 失敗，資料庫未變更');
+            }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
             if (ok) {
                 Admin.renderUsers();
-                alert('✅ 已刪除帳號並同步完成');
+                alert('✅ 已刪除帳號並寫入 Supabase');
             } else {
-                alert('⚠️ 帳號刪除同步失敗，雲端資料未變更');
+                alert('⚠️ 帳號刪除寫入 Supabase 失敗，資料庫未變更');
             }
         }
     },
@@ -3174,15 +3210,15 @@ const Admin = {
 
         const ok = await Admin.withButtonStatus(async () => {
             return await App.batchUnlockQuiz(items);
-        }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+        }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         if (ok) {
             Admin.applyScoreFilter();
             App.updateLoginStatus();
-            alert('✅ 批次解鎖已同步完成');
+            alert('✅ 批次解鎖資料已寫入 Supabase完成');
         } else {
-            Backend.setStatus('⚠️ 批次解鎖同步失敗，雲端未變更', 'var(--danger-color)');
-            alert('⚠️ 批次解鎖同步失敗，雲端資料未變更。請確認 Web App 已重新部署，並已執行 ?action=setup。');
+            Backend.setStatus('⚠️ 批次解鎖寫入 Supabase 失敗，資料庫未變更', 'var(--danger-color)');
+            alert('⚠️ 批次解鎖寫入 Supabase 失敗，資料庫未變更。請確認 Supabase 連線與資料表權限。');
         }
     },
     unlockStudentQuiz: async function(u, courseId) {
@@ -3192,15 +3228,15 @@ const Admin = {
 
         const ok = await Admin.withButtonStatus(async () => {
             return await App.unlockQuiz(u, courseId);
-        }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+        }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         if (ok) {
             Admin.applyScoreFilter();
             App.updateLoginStatus();
-            alert('✅ 解鎖已同步完成');
+            alert('✅ 解鎖資料已寫入 Supabase完成');
         } else {
-            Backend.setStatus('⚠️ 解鎖同步失敗，雲端未變更', 'var(--danger-color)');
-            alert('⚠️ 解鎖同步失敗，雲端資料未變更。請確認 Web App 已重新部署，並已執行 ?action=setup。');
+            Backend.setStatus('⚠️ 解鎖資料寫入 Supabase 失敗，資料庫未變更', 'var(--danger-color)');
+            alert('⚠️ 解鎖資料寫入 Supabase 失敗，資料庫未變更。請確認 Supabase 連線與資料表權限。');
         }
     },
     
@@ -3210,7 +3246,7 @@ const Admin = {
         if (!r) return alert('找不到此筆測驗紀錄。');
         if (!confirm(`確定刪除「${r.u}」的「${r.c}」測驗紀錄？`)) return;
         const recordId = String(r.recordId || r.id || '');
-        if (!recordId) return alert('此筆紀錄缺少 recordId，無法安全同步刪除。');
+        if (!recordId) return alert('此筆紀錄缺少 recordId，無法安全刪除。');
 
         const ok = await Admin.withButtonStatus(async () => {
             const result = await Backend.deleteScoreRecords([recordId]);
@@ -3224,14 +3260,14 @@ const Admin = {
             }
             localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(App.state));
             return true;
-        }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+        }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         if (ok) {
             Admin.applyScoreFilter();
             App.updateLoginStatus();
-            alert('✅ 已刪除測驗紀錄並同步完成');
+            alert('✅ 已刪除測驗紀錄並寫入 Supabase');
         } else {
-            alert('⚠️ 刪除測驗紀錄同步失敗，雲端資料未刪除。');
+            alert('⚠️ 刪除測驗紀錄寫入 Supabase 失敗，資料庫資料未刪除。');
         }
     },
     
@@ -3246,7 +3282,7 @@ const Admin = {
         if (!uniqueIndices.length) return alert('請先勾選要刪除的測驗紀錄。');
         if (!confirm(`確定批次刪除 ${uniqueIndices.length} 筆測驗紀錄？`)) return;
         const recordIds = uniqueIndices.map(idx => App.state.records[idx]).filter(Boolean).map(r => String(r.recordId || r.id || '')).filter(Boolean);
-        if (!recordIds.length) return alert('所選紀錄缺少 recordId，無法安全同步刪除。');
+        if (!recordIds.length) return alert('所選紀錄缺少 recordId，無法安全刪除。');
 
         const ok = await Admin.withButtonStatus(async () => {
             const result = await Backend.deleteScoreRecords(recordIds);
@@ -3260,14 +3296,14 @@ const Admin = {
             }
             localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(App.state));
             return true;
-        }, { syncingText: '同步中...', successText: '✅ 已同步', failText: '⚠️ 同步失敗' });
+        }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         if (ok) {
             Admin.applyScoreFilter();
             App.updateLoginStatus();
-            alert('✅ 已批次刪除測驗紀錄並同步完成');
+            alert('✅ 已批次刪除測驗紀錄並寫入 Supabase');
         } else {
-            alert('⚠️ 批次刪除測驗紀錄同步失敗，雲端資料未刪除。');
+            alert('⚠️ 批次刪除測驗紀錄寫入 Supabase 失敗，資料庫資料未刪除。');
         }
     },
     
@@ -3321,6 +3357,54 @@ const Admin = {
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
     },
+    exportAnswerDetails: function() {
+        const items = this.getFilteredScoreItems();
+        if (!items.length) return alert('目前沒有可匯出的測驗成績。');
+        const rows = [[
+            '代字', '員工編號', '姓名', '測驗科目', '總分', '及格分數', '考核日期',
+            '題號', '題目', '選項', '作答序號', '作答內容', '正解序號', '正解內容', '是否正確'
+        ]];
+        let answerCount = 0;
+        items.forEach(item => {
+            const r = item.r;
+            const details = Array.isArray(r.answerDetails) ? r.answerDetails : [];
+            const course = App.state.courses.find(c => c.id === r.cid || c.title === r.c);
+            const passScore = Number(r.passScore || (course ? App.getPassScore(course) : 70));
+            details.forEach(ans => {
+                answerCount += 1;
+                rows.push([
+                    r.u || '',
+                    App.getRecordEmployeeId(r),
+                    App.getRecordName(r),
+                    r.c || '',
+                    String(r.s ?? ''),
+                    String(passScore),
+                    DateUtil.format(r.d),
+                    String(ans.questionNo || ''),
+                    ans.questionText || '',
+                    Array.isArray(ans.options) ? ans.options.map((o, i) => `(${i + 1}) ${o}`).join(' / ') : '',
+                    Number.isFinite(Number(ans.userAnswerIndex)) ? String(Number(ans.userAnswerIndex) + 1) : '',
+                    ans.userAnswerText || '',
+                    Number.isFinite(Number(ans.correctAnswerIndex)) ? String(Number(ans.correctAnswerIndex) + 1) : '',
+                    ans.correctAnswerText || '',
+                    ans.isCorrect ? '正確' : '錯誤'
+                ]);
+            });
+        });
+        if (!answerCount) return alert('目前顯示的成績沒有逐題明細。舊版成績不會自動補出逐題紀錄，請以新版送出後再匯出。');
+        const csv = rows.map(row => row.map(v => Admin.csvCell(v)).join(',')).join('\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const filename = `逐題作答紀錄_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    },
     renderScores: function() {
         const panel = document.getElementById('panel-score');
         panel.innerHTML = `
@@ -3328,6 +3412,7 @@ const Admin = {
                 <h3>🔍 測驗成績查詢</h3>
                 <div class="header-actions">
                     <button class="btn btn-success btn-sm" onclick="Admin.exportScoreRecords()">匯出成績</button>
+                    <button class="btn btn-outline btn-sm" onclick="Admin.exportAnswerDetails()">匯出逐題紀錄</button>
                 </div>
             </div>
             <div class="filter-group">
@@ -3427,7 +3512,7 @@ const Quiz = {
             account.employeeId = String(App.employeeId || '');
             account.pw = '';
             App.state.users[App.user] = account;
-            const ok = await App.syncUsersOnly('員工編號已同步完成', '員工編號同步失敗，雲端資料未變更。請確認 Web App 已重新部署。');
+            const ok = await App.syncUsersOnly('員工編號已寫入 Supabase', '員工編號寫入 Supabase 失敗，資料庫未變更。請確認 Supabase 連線與權限設定。');
             if (!ok && Backend.enabled()) { this.setScoreSyncOverlay(false); resetStartButton(); return; }
         } else {
             this.setScoreSyncOverlay(true, '正在載入測驗題目，完成後會自動進入測驗。', '測驗準備中', '請稍候，不要重複點擊開始考核。');
@@ -3479,8 +3564,8 @@ const Quiz = {
         if (!App.quizInProgress || App.isInstructor || !App.user || !App.activeCourse) return;
         if (App.isQuizLocked(App.user, App.activeCourse.id)) return;
 
-        // V125.2：若使用者已按「確認送出」且正在等待雲端同步，
-        // 不再記 0 分；改保留本次實際成績為待同步，避免關閉頁面造成錯誤零分。
+        // V125.2：若使用者已按「確認送出」且正在等待 Supabase 寫入，
+        // 不再記 0 分；改保留本次實際成績為待寫入，避免關閉頁面造成錯誤零分。
         if (this.submitInProgress && this.pendingSubmitRecord) {
             const record = this.pendingSubmitRecord;
             if (!App.state.records.some(r => String(r.recordId || r.id || '') === String(record.recordId))) {
@@ -3642,14 +3727,14 @@ const Quiz = {
         const noteEl = document.getElementById('scoreSyncOverlayNote');
         if (!overlay) return;
         if (titleEl) titleEl.innerText = title || '成績儲存中';
-        if (msg) msg.innerText = message || '正在將成績寫入雲端，請勿關閉視窗或重新整理頁面。';
-        if (noteEl) noteEl.innerText = note || '看到考核結果畫面後，才代表成績已完成同步。';
+        if (msg) msg.innerText = message || '正在將成績與逐題紀錄寫入 Supabase，請勿關閉視窗或重新整理頁面。';
+        if (noteEl) noteEl.innerText = note || '看到考核結果畫面後，才代表 Supabase 已完成寫入。';
         overlay.classList.toggle('active', !!isSubmitting);
         overlay.setAttribute('aria-hidden', isSubmitting ? 'false' : 'true');
     },
     setSubmitUi: function(isSubmitting, message) {
         this.submitInProgress = !!isSubmitting;
-        this.setScoreSyncOverlay(!!isSubmitting, message || '正在將成績寫入雲端，請勿關閉視窗或重新整理頁面。');
+        this.setScoreSyncOverlay(!!isSubmitting, message || '正在將成績與逐題紀錄寫入 Supabase，請勿關閉視窗或重新整理頁面。');
         const btn = document.getElementById('quizSubmitBtn');
         const status = document.getElementById('quizCompletionStatus');
         const reviewConfirmBtn = document.getElementById('reviewConfirmBtn');
@@ -3706,6 +3791,22 @@ const Quiz = {
             const passedNow = score >= passScoreNow;
             const nowText = DateUtil.format();
             const currentKey = `${App.user || ''}__${course.id || ''}__${answers.join(',')}`;
+            const answerDetails = questions.map((q, i) => {
+                const userIndex = Number(answers[i]);
+                const correctIndex = Number(q.a);
+                const opts = Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [];
+                return {
+                    questionNo: i + 1,
+                    questionId: String(q.id || `q${i + 1}`),
+                    questionText: String(q.q || ''),
+                    options: opts,
+                    userAnswerIndex: Number.isFinite(userIndex) ? userIndex : null,
+                    userAnswerText: Number.isFinite(userIndex) ? String(opts[userIndex] || '') : '',
+                    correctAnswerIndex: Number.isFinite(correctIndex) ? correctIndex : null,
+                    correctAnswerText: Number.isFinite(correctIndex) ? String(opts[correctIndex] || '') : '',
+                    isCorrect: Number.isFinite(userIndex) && Number.isFinite(correctIndex) && userIndex === correctIndex
+                };
+            });
 
             if (!this.pendingSubmitRecord || this.pendingSubmitKey !== currentKey) {
                 this.pendingSubmitKey = currentKey;
@@ -3724,10 +3825,26 @@ const Quiz = {
                     passScore: Number(passScoreNow),
                     d: nowText,
                     date: nowText,
-                    note: ''
+                    note: '',
+                    answerDetails: answerDetails,
+                    questionSnapshot: questions.map((q, i) => ({
+                        questionNo: i + 1,
+                        questionId: String(q.id || `q${i + 1}`),
+                        questionText: String(q.q || ''),
+                        options: Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [],
+                        correctAnswerIndex: Number(q.a)
+                    }))
                 };
             }
             const record = this.pendingSubmitRecord;
+            record.answerDetails = answerDetails;
+            record.questionSnapshot = questions.map((q, i) => ({
+                questionNo: i + 1,
+                questionId: String(q.id || `q${i + 1}`),
+                questionText: String(q.q || ''),
+                options: Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [],
+                correctAnswerIndex: Number(q.a)
+            }));
 
             if (!App.isInstructor) {
                 this.setSubmitUi(true, '成績儲存中，請勿關閉視窗或重新整理頁面...');
@@ -3735,7 +3852,7 @@ const Quiz = {
                 if (!(syncResult && syncResult.ok)) {
                     const errText = syncResult && syncResult.error ? `\n${syncResult.error}` : '';
                     this.setSubmitUi(false, '成績尚未成功儲存，請確認網路後再按一次「提交考核答案」。');
-                    alert('成績尚未成功儲存，請勿關閉頁面。請確認網路或 Web App 部署後，再重新送出。' + errText);
+                    alert('成績尚未成功寫入 Supabase，請勿關閉頁面。請確認網路或 Supabase 連線後，再重新送出。' + errText);
                     return;
                 }
 
@@ -3770,7 +3887,7 @@ const Quiz = {
                 } else {
                     const baseText = `${passedNow ? '及格' : '未及格'}（及格標準：${passScoreNow} 分）`;
                     resultPassNote.setAttribute('data-result-base', baseText);
-                    resultPassNote.innerText = `${baseText}｜成績已同步，可以關閉頁面。`;
+                    resultPassNote.innerText = `${baseText}｜成績已寫入 Supabase，可以關閉頁面。`;
                     resultPassNote.style.color = passedNow ? 'var(--success-color)' : 'var(--danger-color)';
                 }
             }
