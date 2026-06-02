@@ -87,16 +87,51 @@
         #contentBox .material-player { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; background: #000; }
         #contentBox .material-player iframe,
         #contentBox .material-player video { width: 100%; height: 100%; border: none; display: block; background: #000; }
-        .material-tabs { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-        .material-tab-btn { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .material-tab-btn.active { background: var(--accent-color); color: #0d1117; border-color: var(--accent-color); }
+        .material-selector-wrap { display: flex; align-items: center; gap: 8px; width: min(340px, 100%); }
+        .material-selector {
+            width: 100%;
+            max-width: 320px;
+            height: 36px;
+            margin: 0;
+            padding: 7px 10px;
+            background: #0d1117;
+            border: 1px solid rgba(88,166,255,0.35);
+            color: var(--text-color);
+            border-radius: 999px;
+            font-size: 13px;
+            outline: none;
+        }
+        .material-selector:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
+        }
         .material-list-editor { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+        .material-editor-top { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; gap: 8px; align-items: center; }
+        .material-editor-select {
+            width: 100%;
+            height: 36px;
+            margin: 0;
+            padding: 7px 10px;
+            background: #0d1117;
+            border: 1px solid rgba(88,166,255,0.35);
+            color: var(--text-color);
+            border-radius: 999px;
+            font-size: 13px;
+            outline: none;
+        }
+        .material-editor-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
+        }
         .material-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 76px; gap: 8px; align-items: center; }
+        .material-row.is-hidden { display: none !important; }
         .material-row .input-field { margin: 0; }
         .material-row .btn { min-height: 34px; }
-        .material-actions-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 2px; }
-        .material-small-note { font-size: 12px; color: #8b949e; line-height: 1.5; }
-        @media (max-width: 760px) { .material-row { grid-template-columns: 1fr; } .material-tab-btn { max-width: 100%; } }
+        .material-actions-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 2px; }
+        @media (max-width: 760px) {
+            .material-editor-top { grid-template-columns: 1fr; }
+            .material-row { grid-template-columns: 1fr; }
+        }
 
         .viewer-hint-below {
             display: inline-flex;
@@ -2841,13 +2876,19 @@ const App = {
         if (!tabs) return;
         const materials = this.getCourseMaterials(this.activeCourse);
         if (materials.length <= 1) {
-            tabs.innerHTML = materials.length ? `<span class="viewer-hint-below">💡 可使用播放器功能表或控制列觀看教材。</span>` : '';
+            tabs.innerHTML = '';
             return;
         }
-        tabs.innerHTML = materials.map((m, i) => `<button class="btn btn-outline btn-sm material-tab-btn ${i === (this.activeMaterialIndex || 0) ? 'active' : ''}" onclick="App.selectMaterial(${i})" title="${Admin.esc(m.title || `教材 ${i + 1}`)}">${Admin.esc(m.title || `教材 ${i + 1}`)}</button>`).join('');
+        const current = Math.max(0, Math.min(Number(this.activeMaterialIndex) || 0, materials.length - 1));
+        tabs.innerHTML = `
+            <div class="material-selector-wrap">
+                <select id="materialSelect" class="material-selector" onchange="App.selectMaterial(this.value)" aria-label="選擇教材">
+                    ${materials.map((m, i) => `<option value="${i}" ${i === current ? 'selected' : ''}>${Admin.esc(m.title || `教材 ${i + 1}`)}</option>`).join('')}
+                </select>
+            </div>`;
     },
     selectMaterial: function(index) {
-        this.renderMaterialContent(index);
+        this.renderMaterialContent(Number(index) || 0);
     },
     openView: function(isReview) {
         this.refreshActiveCourse();
@@ -2870,7 +2911,7 @@ const App = {
                 : `<button id="startQuizBtn" class="btn btn-success" onclick="Quiz.init()">開始考核 📝</button>`);
         document.getElementById('viewActionArea').innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; gap:15px; width:100%;">
-                <div id="materialTabs" class="material-tabs" style="text-align:left; flex:1;"></div>
+                <div id="materialTabs" style="text-align:left; flex:1; min-width:0;"></div>
                 <div style="text-align:right; flex-shrink:0;">${actionHtml}</div>
             </div>`;
         this.updateMaterialTabs();
@@ -3091,20 +3132,46 @@ const Admin = {
     },
     renderMaterialRows: function(course, ci) {
         const mats = this.getCourseMaterials(course, true);
+        const active = 0;
+        const options = mats.map((m, mi) => `<option value="${mi}" ${mi === active ? 'selected' : ''}>${Admin.esc(m.title || `教材 ${mi + 1}`)}</option>`).join('');
         const rows = mats.map((m, mi) => `
-            <div class="material-row" data-material-index="${mi}">
-                <input type="text" class="input-field m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}" placeholder="教材名稱">
+            <div class="material-row ${mi === active ? '' : 'is-hidden'}" data-material-index="${mi}" data-material-id="${Admin.esc(m.id || `${course && course.id || 'course'}_mat_${mi + 1}`)}">
+                <input type="text" class="input-field m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}" placeholder="教材名稱" oninput="Admin.refreshMaterialOptionLabel(this)">
                 <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼">
                 <button class="btn btn-danger btn-sm" onclick="Admin.delMaterial(${ci}, ${mi})">移除</button>
             </div>`).join('');
         return `
-            <div class="material-list-editor">
-                ${rows}
-                <div class="material-actions-row">
-                    <div class="material-small-note">可新增多個教材；前台會顯示教材切換按鈕。YouTube 一般連結會自動轉為可嵌入播放格式。</div>
+            <div class="material-list-editor" data-course-index="${ci}">
+                <div class="material-editor-top">
+                    <select class="material-editor-select" onchange="Admin.selectEditorMaterial(this)" aria-label="選擇要編輯的教材">${options}</select>
                     <button class="btn btn-primary btn-sm" onclick="Admin.addMaterial(${ci})">➕ 新增教材</button>
+                    <button class="btn btn-danger btn-sm" onclick="Admin.delSelectedMaterial(${ci}, this)">移除目前教材</button>
                 </div>
+                ${rows}
             </div>`;
+    },
+    refreshMaterialOptionLabel: function(input) {
+        const editor = input ? input.closest('.material-list-editor') : null;
+        const row = input ? input.closest('.material-row') : null;
+        if (!editor || !row) return;
+        const select = editor.querySelector('.material-editor-select');
+        const idx = Number(row.dataset.materialIndex || 0);
+        const option = select ? select.querySelector(`option[value="${idx}"]`) : null;
+        if (option) option.textContent = (input.value || '').trim() || `教材 ${idx + 1}`;
+    },
+    selectEditorMaterial: function(select) {
+        const editor = select ? select.closest('.material-list-editor') : null;
+        if (!editor) return;
+        const target = String(select.value || '0');
+        editor.querySelectorAll('.material-row').forEach(row => {
+            row.classList.toggle('is-hidden', String(row.dataset.materialIndex || '0') !== target);
+        });
+    },
+    delSelectedMaterial: function(ci, btn) {
+        const editor = btn ? btn.closest('.material-list-editor') : null;
+        const select = editor ? editor.querySelector('.material-editor-select') : null;
+        const mi = select ? parseInt(select.value, 10) : 0;
+        this.delMaterial(ci, Number.isFinite(mi) ? mi : 0);
     },
 
     dragCourseIndex: null,
