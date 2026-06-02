@@ -83,6 +83,21 @@
         #contentBox { position: relative; flex: 1 1 auto; min-height: min(660px, calc(90vh - 178px)); background: #000; border-radius: 8px; overflow: hidden; display: flex; border: 1px solid var(--border-color); }
         @supports (height: 100dvh) { #contentBox { min-height: min(660px, calc(90dvh - 178px)); } }
         #contentBox iframe { width: 100%; height: 100%; min-height: 100%; border: none; display: block; }
+        #contentBox .material-player-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; background: #000; }
+        #contentBox .material-player { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; background: #000; }
+        #contentBox .material-player iframe,
+        #contentBox .material-player video { width: 100%; height: 100%; border: none; display: block; background: #000; }
+        .material-tabs { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .material-tab-btn { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .material-tab-btn.active { background: var(--accent-color); color: #0d1117; border-color: var(--accent-color); }
+        .material-list-editor { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+        .material-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 76px; gap: 8px; align-items: center; }
+        .material-row .input-field { margin: 0; }
+        .material-row .btn { min-height: 34px; }
+        .material-actions-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 2px; }
+        .material-small-note { font-size: 12px; color: #8b949e; line-height: 1.5; }
+        @media (max-width: 760px) { .material-row { grid-template-columns: 1fr; } .material-tab-btn { max-width: 100%; } }
+
         .viewer-hint-below {
             display: inline-flex;
             align-items: center;
@@ -1941,6 +1956,9 @@ const Backend = {
             App.state.courses.forEach(c => {
                 const n = Number(c.passScore);
                 c.passScore = Number.isFinite(n) && n >= 0 && n <= 100 ? n : 80;
+                if (!Array.isArray(c.materials)) {
+                    c.materials = c.embedUrl ? [{ id: `${c.id || 'course'}_mat_1`, title: '教材 1', url: String(c.embedUrl || ''), type: 'auto' }] : [];
+                }
             });
             localStorage.setItem('ATC_PRO_CLOUD', JSON.stringify(App.state));
             localStorage.setItem('ATC_LAST_CLOUD_LOAD_TS', String(Date.now()));
@@ -2748,14 +2766,94 @@ const App = {
         this.activeCourse = selectedCourse;
         this.openView(isReview);
     },
+    getCourseMaterials: function(course) {
+        if (!course) return [];
+        const list = Array.isArray(course.materials) ? course.materials : [];
+        const clean = list.map((m, idx) => ({
+            id: m && m.id ? m.id : `${course.id || 'course'}_mat_${idx + 1}`,
+            title: String((m && m.title) || `教材 ${idx + 1}`).trim() || `教材 ${idx + 1}`,
+            url: String((m && (m.url || m.embedUrl)) || '').trim(),
+            type: String((m && m.type) || 'auto').trim() || 'auto'
+        })).filter(m => m.url);
+        if (!clean.length && course.embedUrl) {
+            clean.push({ id: `${course.id || 'course'}_mat_1`, title: '教材 1', url: String(course.embedUrl || '').trim(), type: 'auto' });
+        }
+        return clean;
+    },
+    materialUrlFromInput: function(raw) {
+        let url = String(raw || '').trim();
+        if (!url) return '';
+        if (url.includes('<iframe')) {
+            const match = url.match(/src=["']([^"']+)["']/i);
+            if (match) url = match[1];
+        }
+        return url.trim();
+    },
+    normalizeMaterialUrl: function(raw) {
+        let url = this.materialUrlFromInput(raw);
+        if (!url) return '';
+        try {
+            const u = new URL(url, window.location.href);
+            const host = u.hostname.replace(/^www\./, '');
+            if (host === 'youtu.be') {
+                const id = u.pathname.split('/').filter(Boolean)[0];
+                if (id) return `https://www.youtube.com/embed/${id}`;
+            }
+            if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
+                if (u.pathname === '/watch' && u.searchParams.get('v')) return `https://www.youtube.com/embed/${u.searchParams.get('v')}`;
+                const parts = u.pathname.split('/').filter(Boolean);
+                if ((parts[0] === 'shorts' || parts[0] === 'live') && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
+                if (parts[0] === 'embed' && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
+            }
+            if (host === 'drive.google.com') {
+                const m = u.pathname.match(/\/file\/d\/([^/]+)/);
+                if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+            }
+        } catch (e) {}
+        return url;
+    },
+    isDirectVideoUrl: function(url) {
+        return /\.(mp4|webm|ogg)(\?|#|$)/i.test(String(url || ''));
+    },
+    renderMaterialContent: function(index) {
+        const contentBox = document.getElementById('contentBox');
+        if (!contentBox) return;
+        const materials = this.getCourseMaterials(this.activeCourse);
+        if (!materials.length) {
+            contentBox.innerHTML = `<div style="text-align:center; padding-top:100px; width:100%;">⚠️ 尚未設定教材</div>`;
+            return;
+        }
+        const safeIndex = Math.max(0, Math.min(Number(index) || 0, materials.length - 1));
+        this.activeMaterialIndex = safeIndex;
+        const material = materials[safeIndex];
+        const url = this.normalizeMaterialUrl(material.url);
+        const escUrl = Admin && Admin.esc ? Admin.esc(url) : url.replace(/"/g, '&quot;');
+        const title = Admin && Admin.esc ? Admin.esc(material.title || `教材 ${safeIndex + 1}`) : `教材 ${safeIndex + 1}`;
+        const player = this.isDirectVideoUrl(url)
+            ? `<video src="${escUrl}" controls playsinline controlsList="nodownload" style="width:100%; height:100%; background:#000;"></video>`
+            : `<iframe src="${escUrl}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen="true" referrerpolicy="strict-origin-when-cross-origin" style="width:100%; height:100%; border:none; display:block;"></iframe>`;
+        contentBox.innerHTML = `<div class="material-player-wrap"><div class="material-player" title="${title}">${player}</div></div>`;
+        contentBox.oncontextmenu = function(e) { e.preventDefault(); return false; };
+        this.updateMaterialTabs();
+    },
+    updateMaterialTabs: function() {
+        const tabs = document.getElementById('materialTabs');
+        if (!tabs) return;
+        const materials = this.getCourseMaterials(this.activeCourse);
+        if (materials.length <= 1) {
+            tabs.innerHTML = materials.length ? `<span class="viewer-hint-below">💡 可使用播放器功能表或控制列觀看教材。</span>` : '';
+            return;
+        }
+        tabs.innerHTML = materials.map((m, i) => `<button class="btn btn-outline btn-sm material-tab-btn ${i === (this.activeMaterialIndex || 0) ? 'active' : ''}" onclick="App.selectMaterial(${i})" title="${Admin.esc(m.title || `教材 ${i + 1}`)}">${Admin.esc(m.title || `教材 ${i + 1}`)}</button>`).join('');
+    },
+    selectMaterial: function(index) {
+        this.renderMaterialContent(index);
+    },
     openView: function(isReview) {
         this.refreshActiveCourse();
         document.getElementById('viewTitle').innerText = this.activeCourse.title;
-        let url = (this.activeCourse.embedUrl || "").trim();
-        if (url.includes('<iframe')) { const match = url.match(/src=["']([^"']+)["']/); if (match) url = match[1]; }
-        const contentBox = document.getElementById('contentBox');
-        contentBox.innerHTML = url ? `<iframe src="${url}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen="true" style="width:100%; height:100%; border:none; display:block;"></iframe>` : `<div style="text-align:center; padding-top:100px; width:100%;">⚠️ 尚未設定連結</div>`;
-        contentBox.oncontextmenu = function(e) { e.preventDefault(); return false; };
+        this.activeMaterialIndex = 0;
+        this.renderMaterialContent(0);
         const adminBackBtn = document.getElementById('adminBackFromViewBtn');
         if (adminBackBtn) adminBackBtn.classList.toggle('hidden', !this.isInstructor);
         const viewExitBtn = document.getElementById('viewExitBtn');
@@ -2770,12 +2868,12 @@ const App = {
             : (locked
                 ? `<div style="color:var(--warning-color); font-weight:bold;">🔒 已完成本科目測驗，請洽管理員解鎖複測。</div>`
                 : `<button id="startQuizBtn" class="btn btn-success" onclick="Quiz.init()">開始考核 📝</button>`);
-        const hintHtml = url ? `<div class="viewer-hint-below">💡 可使用［︙］功能表選擇全螢幕模式觀看。</div>` : `<span></span>`;
         document.getElementById('viewActionArea').innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; gap:15px; width:100%;">
-                <div style="text-align:left; flex:1;">${hintHtml}</div>
+                <div id="materialTabs" class="material-tabs" style="text-align:left; flex:1;"></div>
                 <div style="text-align:right; flex-shrink:0;">${actionHtml}</div>
             </div>`;
+        this.updateMaterialTabs();
         this.showSec('sec-view');
     },
     adminOpenCourseTester: function() {
@@ -2976,7 +3074,39 @@ const App = {
     }
 };
 
-const Admin = {
+const Admin = { 
+    getCourseMaterials: function(course, includeBlank) {
+        const list = Array.isArray(course && course.materials) ? course.materials : [];
+        let clean = list.map((m, idx) => ({
+            id: m && m.id ? m.id : `${course.id || 'course'}_mat_${idx + 1}`,
+            title: String((m && m.title) || `教材 ${idx + 1}`).trim(),
+            url: String((m && (m.url || m.embedUrl)) || '').trim(),
+            type: String((m && m.type) || 'auto').trim() || 'auto'
+        })).filter(m => includeBlank || m.url || m.title);
+        if (!clean.length && course && course.embedUrl) {
+            clean = [{ id: `${course.id || 'course'}_mat_1`, title: '教材 1', url: String(course.embedUrl || '').trim(), type: 'auto' }];
+        }
+        if (!clean.length && includeBlank) clean = [{ id: `${course && course.id || 'course'}_mat_1`, title: '教材 1', url: '', type: 'auto' }];
+        return clean;
+    },
+    renderMaterialRows: function(course, ci) {
+        const mats = this.getCourseMaterials(course, true);
+        const rows = mats.map((m, mi) => `
+            <div class="material-row" data-material-index="${mi}">
+                <input type="text" class="input-field m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}" placeholder="教材名稱">
+                <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼">
+                <button class="btn btn-danger btn-sm" onclick="Admin.delMaterial(${ci}, ${mi})">移除</button>
+            </div>`).join('');
+        return `
+            <div class="material-list-editor">
+                ${rows}
+                <div class="material-actions-row">
+                    <div class="material-small-note">可新增多個教材；前台會顯示教材切換按鈕。YouTube 一般連結會自動轉為可嵌入播放格式。</div>
+                    <button class="btn btn-primary btn-sm" onclick="Admin.addMaterial(${ci})">➕ 新增教材</button>
+                </div>
+            </div>`;
+    },
+
     dragCourseIndex: null,
     justDraggedCourse: false,
     esc: function(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#39;'); },
@@ -3192,7 +3322,7 @@ const Admin = {
                     <div class="editor-card course-editor-main-card">
                         <div class="course-setting-inline-title">
                             <h4>科目設定與教材</h4>
-                            <div class="course-material-status ${c.embedUrl ? 'has-link' : ''}">${c.embedUrl ? '● 已設定教材' : '尚未設定教材'}</div>
+                            <div class="course-material-status ${(Admin.getCourseMaterials(c).length || c.embedUrl) ? 'has-link' : ''}">${(Admin.getCourseMaterials(c).length || c.embedUrl) ? `● 已設定 ${Admin.getCourseMaterials(c).length || 1} 個教材` : '尚未設定教材'}</div>
                         </div>
                         <div class="course-compact-row">
                             <div>
@@ -3204,8 +3334,8 @@ const Admin = {
                                 <input type="number" min="0" max="100" class="input-field c-pass-score" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="及格分數">
                             </div>
                             <div class="material-field">
-                                <label>教材嵌入連結</label>
-                                <input type="text" class="input-field c-url" value="${Admin.esc(c.embedUrl || '')}" placeholder="請貼上 iframe 嵌入碼或教材網址">
+                                <label>教材清單</label>
+                                ${Admin.renderMaterialRows(c, ci)}
                             </div>
                         </div>
                         <hr class="course-setting-divider">
@@ -3309,7 +3439,7 @@ const Admin = {
     toggleCourse: function(id, el) {
         if (Admin.justDraggedCourse) return;
  el.classList.toggle('open'); App.lastOpenedCourseId = el.classList.contains('open') ? id : null; },
-    sync: function() {
+    sync: function(keepBlankMaterials) {
         document.querySelectorAll('.course-item').forEach(item => {
             const cid = parseInt(item.dataset.id);
             const target = App.state.courses.find(c => c.id === cid);
@@ -3331,7 +3461,14 @@ const Admin = {
                         }
                     }
                 }
-                target.embedUrl = item.querySelector('.c-url').value.trim();
+                const materialRows = Array.from(item.querySelectorAll('.material-row'));
+                target.materials = materialRows.map((row, mi) => ({
+                    id: row.dataset.materialId || `${target.id || 'course'}_mat_${mi + 1}_${Date.now()}`,
+                    title: (row.querySelector('.m-title') ? row.querySelector('.m-title').value.trim() : '') || `教材 ${mi + 1}`,
+                    url: row.querySelector('.m-url') ? row.querySelector('.m-url').value.trim() : '',
+                    type: 'auto'
+                })).filter(m => keepBlankMaterials || m.url || m.title);
+                target.embedUrl = (target.materials.find(m => m.url) || {}).url || '';
                 const passInput = item.querySelector('.c-pass-score');
                 const passScore = passInput ? parseInt(passInput.value, 10) : NaN;
                 target.passScore = Number.isFinite(passScore) && passScore >= 0 && passScore <= 100 ? passScore : 80;
@@ -3343,10 +3480,35 @@ const Admin = {
             }
         });
     },
+    addMaterial: function(ci) {
+        Admin.sync(true);
+        const course = App.state.courses[ci];
+        if (!course) return;
+        if (!Array.isArray(course.materials)) course.materials = Admin.getCourseMaterials(course, true);
+        course.materials.push({ id: `${course.id || Date.now()}_mat_${Date.now()}`, title: `教材 ${course.materials.length + 1}`, url: '', type: 'auto' });
+        App.saveLocalOnly();
+        Admin.renderEditor();
+        Backend.setStatus('已新增教材欄位，請貼上網址後按「儲存變更」寫入 Supabase', 'var(--warning-color)');
+    },
+    delMaterial: function(ci, mi) {
+        Admin.sync(true);
+        const course = App.state.courses[ci];
+        if (!course) return;
+        if (!Array.isArray(course.materials)) course.materials = Admin.getCourseMaterials(course, true);
+        if (course.materials.length <= 1) {
+            course.materials = [{ id: `${course.id || Date.now()}_mat_1`, title: '教材 1', url: '', type: 'auto' }];
+        } else {
+            course.materials.splice(mi, 1);
+        }
+        course.embedUrl = (course.materials.find(m => m.url) || {}).url || '';
+        App.saveLocalOnly();
+        Admin.renderEditor();
+        Backend.setStatus('教材清單已更新，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
+    },
     addCourse: function() {
         const t = prompt("科目名稱");
         if (t) {
-            App.state.courses.push({id:Date.now(), title:t, embedUrl:"", passScore: 80, questions:[]});
+            App.state.courses.push({id:Date.now(), title:t, embedUrl:"", materials:[{ id: `mat_${Date.now()}`, title:"教材 1", url:"", type:"auto" }], passScore: 80, questions:[]});
             App.saveLocalOnly();
             Admin.renderEditor();
             Backend.setStatus('已新增科目，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
