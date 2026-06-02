@@ -258,6 +258,54 @@
             border: 1px solid var(--border-color);
             box-shadow: 0 2px 8px rgba(0,0,0,0.18);
         }
+
+        /* v139：題目選項預設收合，減少拖曳時卡片高度與重排負擔 */
+        .q-row.q-options-collapsed > .q-options-grid,
+        .q-row.q-options-collapsed .q-options-grid[hidden] {
+            display: none !important;
+            height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            visibility: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        body.question-sort-active .q-options-grid {
+            display: none !important;
+            height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            visibility: hidden !important;
+        }
+        .q-toggle-options {
+            min-width: 84px;
+            height: 30px;
+            padding: 5px 10px;
+            background: #21262d;
+            border: 1px solid rgba(88,166,255,0.35);
+            color: var(--accent-color);
+            border-radius: 999px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .q-toggle-options:hover {
+            border-color: rgba(88,166,255,0.8);
+            background: rgba(88,166,255,0.12);
+        }
+        .q-toggle-options:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .q-options-hint {
+            color: #8b949e;
+            font-size: 12px;
+            margin: 6px 0 0 42px;
+            line-height: 1.5;
+        }
+        .q-row:not(.q-options-collapsed) .q-options-hint {
+            display: none;
+        }
         .q-row-header {
             display: flex;
             justify-content: space-between;
@@ -682,9 +730,34 @@
             z-index: 10;
         }
 
-        /* v137：科目設定與教材嵌入單列整併，拖曳捲動加速 */
+        /* v138：科目設定與教材嵌入併入題庫同一卡片，拖曳捲動再加速 */
         .compact-course-card {
             padding: 12px 14px;
+        }
+        .course-editor-main-card {
+            padding-top: 14px;
+        }
+        .course-setting-inline-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .course-setting-inline-title h4 {
+            margin: 0;
+            color: var(--accent-color);
+            letter-spacing: 0.02em;
+        }
+        .course-setting-divider {
+            margin: 14px 0 12px;
+            border: none;
+            border-top: 1px solid var(--border-color);
+        }
+        body.question-sort-active #adminContent,
+        body.question-sort-active #sec-admin,
+        body.question-sort-active .admin-content {
+            scroll-behavior: auto !important;
         }
         .course-compact-row {
             display: grid;
@@ -2933,6 +3006,44 @@ const Admin = {
         if (row.some(v => v !== '')) rows.push(row);
         return rows;
     },
+
+    toggleQOptions: function(btn) {
+        const row = btn && btn.closest ? btn.closest('.q-row') : null;
+        if (!row) return;
+        const grid = row.querySelector('.q-options-grid');
+        const collapsed = row.classList.toggle('q-options-collapsed');
+        if (grid) {
+            grid.hidden = collapsed;
+            if (collapsed) {
+                grid.style.setProperty('display', 'none', 'important');
+            } else {
+                grid.style.removeProperty('display');
+                grid.style.removeProperty('height');
+                grid.style.removeProperty('max-height');
+                grid.style.removeProperty('visibility');
+                grid.style.removeProperty('overflow');
+            }
+        }
+        btn.innerHTML = collapsed ? '▸ 選項' : '▾ 選項';
+        btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        btn.title = collapsed ? '展開選項' : '收合選項';
+    },
+    enforceCollapsedOptions: function(scope) {
+        const root = scope || document;
+        root.querySelectorAll('.q-row.q-options-collapsed').forEach(row => {
+            const grid = row.querySelector('.q-options-grid');
+            const btn = row.querySelector('.q-toggle-options');
+            if (grid) {
+                grid.hidden = true;
+                grid.style.setProperty('display', 'none', 'important');
+            }
+            if (btn) {
+                btn.innerHTML = '▸ 選項';
+                btn.setAttribute('aria-expanded', 'false');
+                btn.title = '展開選項';
+            }
+        });
+    },
     reindexQuestions: function(ci) {
         const rows = document.querySelectorAll(`#ql-${ci} .q-row`);
         rows.forEach((row, idx) => { row.querySelector('.handle-text').innerText = `Q${idx + 1}`; });
@@ -2978,8 +3089,8 @@ const Admin = {
         const target = Admin.getQuestionScrollTarget();
         const isPage = target === document.documentElement || target === document.body || target === document.scrollingElement;
         const rect = isPage ? { top: 0, bottom: window.innerHeight } : target.getBoundingClientRect();
-        const threshold = 120;
-        const maxSpeed = 44;
+        const threshold = 190;
+        const maxSpeed = 132;
         let speed = 0;
 
         if (point.clientY < rect.top + threshold) {
@@ -3055,7 +3166,7 @@ const Admin = {
             <div class="sticky-header">
                 <div>
                     <h3>📚 教材與題庫編輯</h3>
-                    <div class="editor-helper" style="margin-top:6px;">編輯科目、教材、題庫及拖拉科目卡片調整順序後，記得按下儲存變更才會生效。</div>
+                    <div class="editor-helper" style="margin-top:6px;">編輯科目、教材與題庫，或拖拉科目卡片調整順序後，記得按下儲存變更才會生效。</div>
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-template btn-sm" onclick="Admin.downloadTemplate()"><span class="btn-icon-mono">⇩</span> 下載範本</button>
@@ -3074,7 +3185,11 @@ const Admin = {
                     </div>
                 </div>
                 <div class="course-content">
-                    <div class="editor-card compact-course-card">
+                    <div class="editor-card course-editor-main-card">
+                        <div class="course-setting-inline-title">
+                            <h4>科目設定與教材</h4>
+                            <div class="course-material-status ${c.embedUrl ? 'has-link' : ''}">${c.embedUrl ? '● 已設定教材' : '尚未設定教材'}</div>
+                        </div>
                         <div class="course-compact-row">
                             <div>
                                 <label>科目名稱</label>
@@ -3088,14 +3203,12 @@ const Admin = {
                                 <label>教材嵌入連結</label>
                                 <input type="text" class="input-field c-url" value="${Admin.esc(c.embedUrl || '')}" placeholder="請貼上 iframe 嵌入碼或教材網址">
                             </div>
-                            <div class="course-material-status ${c.embedUrl ? 'has-link' : ''}">${c.embedUrl ? '● 已設定教材' : '尚未設定教材'}</div>
                         </div>
-                    </div>
-                    <div class="editor-card">
+                        <hr class="course-setting-divider">
                         <div class="question-toolbar">
                             <div>
                                 <h4>題庫內容</h4>
-                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；只有按住題號旁的［☰］才會拖曳排序，也可用右側箭頭調整題目順序。</div>
+                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；選項預設收合以提升長題庫拖曳流暢度；按「選項」可展開編輯。只有按住題號旁的［☰］才會拖曳排序。</div>
                             </div>
                             <div class="question-actions">
                                 <button class="btn btn-outline btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
@@ -3106,17 +3219,19 @@ const Admin = {
                             </div>
                         </div>
                         <div class="ql-container" id="ql-${ci}">${c.questions.map((q, qi) => `
-                            <div class="q-row">
+                            <div class="q-row q-options-collapsed">
                                 <div class="q-row-header">
                                     <span class="q-title-wrap"><button type="button" class="q-sort-handle handle" title="拖曳調整題目順序" aria-label="拖曳調整題目順序">☰</button> <strong class="handle-text">Q${qi+1}</strong></span>
                                     <div class="q-row-actions">
+                                        <button type="button" class="btn btn-sm q-toggle-options" title="展開或收合選項" aria-label="展開或收合選項" aria-expanded="false" onclick="Admin.toggleQOptions(this)">▸ 選項</button>
                                         <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===0?'disabled':''} title="上移一題" aria-label="上移一題" onclick="Admin.moveQ(${ci}, ${qi}, -1)">▲</button>
                                         <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===c.questions.length-1?'disabled':''} title="下移一題" aria-label="下移一題" onclick="Admin.moveQ(${ci}, ${qi}, 1)">▼</button>
                                         <button class="btn btn-danger btn-sm" onclick="Admin.delQ(${ci}, ${qi})">移除</button>
                                     </div>
                                 </div>
                                 <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
-                                <div class="q-options-grid">
+                                <div class="q-options-hint">選項已收合，拖曳排序會更順暢；需要修改答案或選項時請按右上方「選項」。</div>
+                                <div class="q-options-grid" hidden style="display:none !important;">
                                     ${q.o.map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> 答案</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}"></div>`).join('')}
                                 </div>
                             </div>`).join('')}
@@ -3135,8 +3250,8 @@ const Admin = {
                 direction: 'vertical',
                 scroll: true,
                 bubbleScroll: true,
-                scrollSensitivity: 120,
-                scrollSpeed: 26,
+                scrollSensitivity: 190,
+                scrollSpeed: 96,
                 forceFallback: true,
                 fallbackOnBody: true,
                 fallbackTolerance: 4,
