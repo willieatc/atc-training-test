@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<!-- ATC_V001_SCORE_TABLE_COMPACT -->
+<!-- ATC_V001_NUMBER_INPUT_NO_SPINNER -->
 <!-- ATC_V001_NUMBER_SPINNER_TRANSPARENT -->
 <!-- ATC_V001_SCORE_HEADER_NOWRAP -->
 <!-- ATC_V001_SCORE_ROW_ACTIONS_BATCH_ONLY -->
@@ -1978,7 +1980,7 @@ body.question-sort-active .editor-helper {
         }
         #scoreTableArea table {
             table-layout: auto !important;
-            min-width: 980px;
+            min-width: 0;
         }
         #scoreTableArea {
             overflow-x: auto;
@@ -2003,6 +2005,126 @@ body.question-sort-active .editor-helper {
             background: transparent !important;
             background-color: transparent !important;
             box-shadow: none !important;
+        }
+
+    
+        /* V001 patch：配分與及格分數改為無箭頭輸入框 */
+        .q-score-field,
+        .pass-score-input,
+        input.no-spinner {
+            appearance: textfield !important;
+            -moz-appearance: textfield !important;
+        }
+        .q-score-field::-webkit-inner-spin-button,
+        .q-score-field::-webkit-outer-spin-button,
+        .pass-score-input::-webkit-inner-spin-button,
+        .pass-score-input::-webkit-outer-spin-button,
+        input.no-spinner::-webkit-inner-spin-button,
+        input.no-spinner::-webkit-outer-spin-button {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            margin: 0 !important;
+            display: none !important;
+            opacity: 0 !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+        }
+
+    
+        /* V001 patch：測驗成績查詢欄位緊密化 */
+        #scoreTableArea {
+            overflow-x: auto;
+        }
+        #scoreTableArea table {
+            table-layout: auto !important;
+            min-width: 0 !important;
+            width: 100% !important;
+            font-size: 12.5px;
+        }
+        #scoreTableArea table th,
+        #scoreTableArea table td {
+            padding: 7px 8px !important;
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            line-height: 1.25;
+        }
+        #scoreTableArea table th:first-child,
+        #scoreTableArea table td:first-child {
+            width: 36px !important;
+            min-width: 36px !important;
+            max-width: 36px !important;
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+            text-align: center !important;
+        }
+        #scoreTableArea table th:nth-child(2),
+        #scoreTableArea table td:nth-child(2) {
+            max-width: 72px;
+        }
+        #scoreTableArea table th:nth-child(3),
+        #scoreTableArea table td:nth-child(3) {
+            max-width: 92px;
+        }
+        #scoreTableArea table th:nth-child(4),
+        #scoreTableArea table td:nth-child(4) {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #scoreTableArea table th:nth-child(5),
+        #scoreTableArea table td:nth-child(5),
+        #scoreTableArea table th:nth-child(6),
+        #scoreTableArea table td:nth-child(6) {
+            max-width: 78px;
+            text-align: center;
+        }
+        #scoreTableArea table th:nth-child(7),
+        #scoreTableArea table td:nth-child(7) {
+            max-width: 130px;
+            font-size: 12px;
+        }
+        #scoreTableArea table th:nth-child(8),
+        #scoreTableArea table td:nth-child(8) {
+            max-width: 86px;
+            text-align: center;
+        }
+        #scoreTableArea table th:nth-child(9),
+        #scoreTableArea table td:nth-child(9) {
+            max-width: 76px;
+            text-align: center;
+        }
+        #scoreTableArea .btn-sm {
+            padding: 5px 8px !important;
+            font-size: 12px !important;
+            min-height: 28px;
+        }
+        #scoreTableArea .batch-toolbar {
+            gap: 8px !important;
+        }
+        #scoreTableArea .batch-actions {
+            gap: 6px !important;
+        }
+        #scoreTableArea .batch-toolbar > div:first-child {
+            font-size: 12.5px !important;
+            white-space: nowrap;
+        }
+        @media (max-width: 980px) {
+            #scoreTableArea table {
+                font-size: 12px;
+            }
+            #scoreTableArea table th,
+            #scoreTableArea table td {
+                padding: 6px 6px !important;
+            }
+            #scoreTableArea table th:nth-child(4),
+            #scoreTableArea table td:nth-child(4) {
+                max-width: 120px;
+            }
+            #scoreTableArea table th:nth-child(7),
+            #scoreTableArea table td:nth-child(7) {
+                max-width: 110px;
+            }
         }
 
     </style>
@@ -3843,7 +3965,7 @@ const Admin = {
                             </div>
                             <div>
                                 <label>及格分數</label>
-                                <input type="number" min="0" max="100" class="input-field c-pass-score" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="及格分數">
+                                <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" min="0" max="100" class="input-field c-pass-score no-spinner" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="及格分數">
                             </div>
                             <div class="material-field">
                                 <label>教材清單／教材網址</label>
@@ -3873,7 +3995,7 @@ const Admin = {
                                             <option value="truefalse" ${(q.type || 'choice') === 'truefalse' ? 'selected' : ''}>是非題</option>
                                             <option value="short" ${(q.type || 'choice') === 'short' ? 'selected' : ''}>簡答題</option>
                                         </select>
-                                        <span class="q-score-field-wrap">配分 <input type="number" min="0" max="100" step="0.1" class="q-score-field q-score" value="${q.points === null || q.points === undefined || q.points === '' ? '' : Number(q.points)}" placeholder="自動" title="可留空，由系統計算"></span>
+                                        <span class="q-score-field-wrap no-spinner">配分 <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" class="q-score-field q-score no-spinner" value="${q.points === null || q.points === undefined || q.points === '' ? '' : Number(q.points)}" placeholder="自動" title="可留空，由系統計算"></span>
                                         <button type="button" class="btn btn-sm q-toggle-options" title="展開或收合選項" aria-label="展開或收合選項" aria-expanded="false" onclick="Admin.toggleQOptions(this)">▸ 選項</button>
                                         <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===0?'disabled':''} title="上移一題" aria-label="上移一題" onclick="Admin.moveQ(${ci}, ${qi}, -1)">▲</button>
                                         <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===c.questions.length-1?'disabled':''} title="下移一題" aria-label="下移一題" onclick="Admin.moveQ(${ci}, ${qi}, 1)">▼</button>
@@ -5105,7 +5227,7 @@ const Admin = {
                             <td style="color:${Number(r.s) >= passScore ? 'var(--success-color)' : 'var(--danger-color)'}; font-weight:bold;">${r.s} 分</td>
                             <td>${Number(r.s) >= passScore ? '<span style="color:var(--success-color); font-weight:bold;">及格</span>' : '<span style="color:var(--danger-color); font-weight:bold;">未及格</span>'}</td>
                             <td>${DateUtil.format(r.d)}</td>
-                            <td>${locked ? '<span style="color:var(--warning-color); font-weight:bold;">🔒 已鎖定</span>' : '<span style="color:var(--success-color); font-weight:bold;">✅ 可測驗</span>'}</td>
+                            <td>${locked ? '<span style="color:var(--warning-color); font-weight:bold;">已鎖定</span>' : '<span style="color:var(--success-color); font-weight:bold;">可測驗</span>'}</td>
                             <td>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                                     ${hasShortAnswer ? `<button class="btn btn-primary btn-sm" onclick="Admin.editFinalScore(${item.idx})">待計分</button>` : `<button class="btn btn-outline btn-sm btn-pending-score-disabled" disabled title="此筆沒有簡答題，不需人工計分">待計分</button>`}
