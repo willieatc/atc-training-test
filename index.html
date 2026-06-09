@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <!-- ATC 工作相關學習網 V001 / Supabase database edition -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ATC 專業訓練管理系統</title>
@@ -1745,6 +1746,93 @@ body.question-sort-active .editor-helper {
             font-weight: 700;
         }
 
+    
+        /* V001 patch：教材新增／移除按鈕尺寸與題庫匯出按鈕一致 */
+        .material-row {
+            grid-template-columns: 150px minmax(0, 1fr) auto auto !important;
+        }
+        .material-row .material-action-btn {
+            width: auto !important;
+            min-width: auto !important;
+            min-height: 32px !important;
+            padding: 6px 10px !important;
+            font-size: 12px !important;
+            white-space: nowrap !important;
+        }
+
+    
+        /* V001 patch：簡答題與教材新增切換 */
+        .q-type-select {
+            min-width: 96px;
+            height: 30px;
+            margin: 0;
+            padding: 4px 8px;
+            background: #0d1117;
+            border: 1px solid rgba(88,166,255,0.35);
+            color: var(--text-color);
+            border-radius: 999px;
+            font-size: 12px;
+        }
+        .q-row.q-type-short .q-options-grid,
+        .q-row.q-type-short .q-toggle-options {
+            display: none !important;
+        }
+        .q-short-note {
+            margin-top: 8px;
+            color: #8b949e;
+            font-size: 12px;
+            display: none;
+        }
+        .q-row.q-type-short .q-short-note {
+            display: block;
+        }
+        .quiz-short-answer {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            margin-top: 12px;
+            background: #0d1117;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .manual-score-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(210,153,52,0.14);
+            border: 1px solid rgba(210,153,52,0.32);
+            color: var(--warning-color);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+    
+        /* V001 patch：是非題 */
+        .q-row.q-type-truefalse .q-options-grid {
+            display: grid !important;
+        }
+        .q-row.q-type-truefalse .q-options-grid .option-row:nth-child(n+3) {
+            display: none !important;
+        }
+        .q-row.q-type-truefalse .q-toggle-options {
+            display: none !important;
+        }
+        .q-truefalse-note {
+            margin-top: 8px;
+            color: #8b949e;
+            font-size: 12px;
+            display: none;
+        }
+        .q-row.q-type-truefalse .q-truefalse-note {
+            display: block;
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -1891,7 +1979,7 @@ const PASS_SCORE = 80;
 // ================= Supabase 後端設定 =================
 // Supabase URL 與 anon key 請設定在同層的 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V130-question-sort-fix';
+const APP_BUILD_VERSION = 'V001';
 
 const SUPABASE_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_URL) ? window.ATC_CONFIG.SUPABASE_URL.trim() : "";
 const SUPABASE_ANON_KEY = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_ANON_KEY) ? window.ATC_CONFIG.SUPABASE_ANON_KEY.trim() : "";
@@ -3294,14 +3382,14 @@ const Admin = {
     },
     renderMaterialRows: function(course, ci) {
         const mats = this.getCourseMaterials(course, true);
-        const active = 0;
+        const active = Math.max(0, Math.min(Number(course && course._activeMaterialIndex) || 0, mats.length - 1));
         const options = mats.map((m, mi) => `<option value="${mi}" ${mi === active ? 'selected' : ''}>${Admin.esc(m.title || `教材 ${mi + 1}`)}</option>`).join('');
         const rows = mats.map((m, mi) => `
             <div class="material-row ${mi === active ? '' : 'is-hidden'}" data-material-index="${mi}" data-material-id="${Admin.esc(m.id || `${course && course.id || 'course'}_mat_${mi + 1}`)}">
                 <select class="select-field material-editor-select" onchange="Admin.selectEditorMaterial(this)" aria-label="選擇要編輯的教材">${options}</select>
                 <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼">
-                <button class="btn btn-danger btn-sm material-action-btn" onclick="Admin.delSelectedMaterial(${ci}, this)">移除教材</button>
                 <button class="btn btn-primary btn-sm material-action-btn" onclick="Admin.addMaterial(${ci})">新增教材</button>
+                <button class="btn btn-danger btn-sm material-action-btn" onclick="Admin.delSelectedMaterial(${ci}, this)">移除教材</button>
                 <input type="hidden" class="m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}">
             </div>`).join('');
         return `
@@ -3573,10 +3661,15 @@ const Admin = {
                             </div>
                         </div>
                         <div class="ql-container" id="ql-${ci}">${c.questions.map((q, qi) => `
-                            <div class="q-row q-options-collapsed">
+                            <div class="q-row q-options-collapsed ${(q.type || 'choice') === 'short' ? 'q-type-short' : ((q.type || 'choice') === 'truefalse' ? 'q-type-truefalse' : 'q-type-choice')}">
                                 <div class="q-row-header">
                                     <span class="q-title-wrap"><button type="button" class="q-sort-handle handle" title="拖曳調整題目順序" aria-label="拖曳調整題目順序">☰</button> <strong class="handle-text">Q${qi+1}</strong></span>
                                     <div class="q-row-actions">
+                                        <select class="q-type q-type-select" title="題型" onchange="Admin.updateQuestionType(this)">
+                                            <option value="choice" ${(q.type || 'choice') === 'choice' || !q.type ? 'selected' : ''}>選擇題</option>
+                                            <option value="truefalse" ${(q.type || 'choice') === 'truefalse' ? 'selected' : ''}>是非題</option>
+                                            <option value="short" ${(q.type || 'choice') === 'short' ? 'selected' : ''}>簡答題</option>
+                                        </select>
                                         <button type="button" class="btn btn-sm q-toggle-options" title="展開或收合選項" aria-label="展開或收合選項" aria-expanded="false" onclick="Admin.toggleQOptions(this)">▸ 選項</button>
                                         <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===0?'disabled':''} title="上移一題" aria-label="上移一題" onclick="Admin.moveQ(${ci}, ${qi}, -1)">▲</button>
                                         <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===c.questions.length-1?'disabled':''} title="下移一題" aria-label="下移一題" onclick="Admin.moveQ(${ci}, ${qi}, 1)">▼</button>
@@ -3584,8 +3677,10 @@ const Admin = {
                                     </div>
                                 </div>
                                 <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
-                                <div class="q-options-grid" hidden style="display:none !important;">
-                                    ${q.o.map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> 答案</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}"></div>`).join('')}
+                                <div class="q-short-note">簡答題會保存學員文字作答，後續由人工計分。</div>
+                                <div class="q-truefalse-note">是非題會以「○ 是／╳ 否」自動計分。</div>
+                                <div class="q-options-grid" hidden style="${(q.type || 'choice') === 'truefalse' ? '' : 'display:none !important;'}">
+                                    ${((q.type || 'choice') === 'truefalse' ? ['○ 是', '╳ 否'] : (Array.isArray(q.o) ? q.o : ["","","",""])).map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> 答案</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}" ${(q.type || 'choice') === 'truefalse' ? 'readonly' : ''}></div>`).join('')}
                                 </div>
                             </div>`).join('')}
                         </div>
@@ -3692,11 +3787,17 @@ const Admin = {
                 const passInput = item.querySelector('.c-pass-score');
                 const passScore = passInput ? parseInt(passInput.value, 10) : NaN;
                 target.passScore = Number.isFinite(passScore) && passScore >= 0 && passScore <= 100 ? passScore : 80;
-                target.questions = Array.from(item.querySelectorAll('.q-row')).map(row => ({
-                    q: row.querySelector('.q-t').value,
-                    o: Array.from(row.querySelectorAll('.q-o')).map(o => o.value),
-                    a: parseInt(row.querySelector(`input[type="radio"]:checked`)?.value || 0)
-                }));
+                target.questions = Array.from(item.querySelectorAll('.q-row')).map(row => {
+                    const rawType = row.querySelector('.q-type') ? row.querySelector('.q-type').value : 'choice';
+                    const qType = rawType === 'short' ? 'short' : (rawType === 'truefalse' ? 'truefalse' : 'choice');
+                    const options = qType === 'truefalse' ? ['○ 是', '╳ 否'] : Array.from(row.querySelectorAll('.q-o')).map(o => o.value);
+                    return {
+                        type: qType,
+                        q: row.querySelector('.q-t').value,
+                        o: options,
+                        a: qType === 'short' ? null : parseInt(row.querySelector(`input[type="radio"]:checked`)?.value || 0)
+                    };
+                });
             }
         });
     },
@@ -3706,8 +3807,22 @@ const Admin = {
         if (!course) return;
         if (!Array.isArray(course.materials)) course.materials = Admin.getCourseMaterials(course, true);
         course.materials.push({ id: `${course.id || Date.now()}_mat_${Date.now()}`, title: `教材 ${course.materials.length + 1}`, url: '', type: 'auto' });
+        const newIndex = course.materials.length - 1;
+        course._activeMaterialIndex = newIndex;
         App.saveLocalOnly();
         Admin.renderEditor();
+        setTimeout(() => {
+            const editor = document.querySelector(`.material-list-editor[data-course-index="${ci}"]`);
+            if (!editor) return;
+            const sel = editor.querySelector('.material-editor-select');
+            if (sel) {
+                sel.value = String(newIndex);
+                Admin.selectEditorMaterial(sel);
+            }
+            const row = editor.querySelector(`.material-row[data-material-index="${newIndex}"]`);
+            const input = row ? row.querySelector('.m-url') : null;
+            if (input) input.focus();
+        }, 0);
         Backend.setStatus('已新增教材，請貼上網址後按「儲存變更」寫入 Supabase', 'var(--warning-color)');
     },
     delMaterial: function(ci, mi) {
@@ -3734,11 +3849,69 @@ const Admin = {
             Backend.setStatus('已新增科目，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
         }
     },
+    updateQuestionType: function(select) {
+        const row = select ? select.closest('.q-row') : null;
+        if (!row) return;
+        const type = select.value;
+        const isShort = type === 'short';
+        const isTrueFalse = type === 'truefalse';
+        row.classList.toggle('q-type-short', isShort);
+        row.classList.toggle('q-type-truefalse', isTrueFalse);
+        row.classList.toggle('q-type-choice', !isShort && !isTrueFalse);
+        const grid = row.querySelector('.q-options-grid');
+        const toggle = row.querySelector('.q-toggle-options');
+        if (isShort) {
+            row.classList.add('q-options-collapsed');
+            if (grid) {
+                grid.hidden = true;
+                grid.setAttribute('style', 'display:none !important;');
+            }
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.innerText = '▸ 選項';
+            }
+        } else if (isTrueFalse) {
+            row.classList.remove('q-options-collapsed');
+            if (grid) {
+                grid.hidden = false;
+                grid.setAttribute('style', '');
+                const optionInputs = grid.querySelectorAll('.q-o');
+                if (optionInputs[0]) { optionInputs[0].value = '○ 是'; optionInputs[0].readOnly = true; }
+                if (optionInputs[1]) { optionInputs[1].value = '╳ 否'; optionInputs[1].readOnly = true; }
+                optionInputs.forEach((input, idx) => {
+                    const optionRow = input.closest('.option-row');
+                    if (optionRow) optionRow.style.display = idx < 2 ? '' : 'none';
+                });
+                const radios = grid.querySelectorAll('input[type="radio"]');
+                if (![...radios].some(r => r.checked) && radios[0]) radios[0].checked = true;
+            }
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'true');
+                toggle.innerText = '▾ 選項';
+            }
+        } else {
+            if (grid) {
+                grid.hidden = true;
+                grid.setAttribute('style', 'display:none !important;');
+                grid.querySelectorAll('.q-o').forEach((input, idx) => {
+                    input.readOnly = false;
+                    const optionRow = input.closest('.option-row');
+                    if (optionRow) optionRow.style.display = '';
+                    if ((input.value === '○ 是' || input.value === '╳ 否') && idx < 2) input.value = '';
+                });
+            }
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.innerText = '▸ 選項';
+            }
+        }
+        Backend.setStatus('題型已更新，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
+    },
     addQ: function(ci) {
         Admin.sync();
         const course = App.state.courses[ci];
         if (!course) return;
-        course.questions.push({q:"", o:["","","",""], a:0});
+        course.questions.push({type:"choice", q:"", o:["","","",""], a:0});
         App.lastOpenedCourseId = course.id;
         App.pendingScrollQuestion = { courseIndex: ci, questionIndex: course.questions.length - 1 };
         Admin.renderEditor();
@@ -4692,13 +4865,18 @@ const Quiz = {
             this.setScoreSyncOverlay(true, '正在載入測驗題目，完成後會自動進入測驗。', '測驗準備中', '請稍候，不要重複點擊開始考核。');
         }
         this.ans = new Array(App.activeCourse.questions.length).fill(null);
-        document.getElementById('quizContainer').innerHTML = App.activeCourse.questions.map((q, i) => `
+        document.getElementById('quizContainer').innerHTML = App.activeCourse.questions.map((q, i) => {
+            const qType = (q.type || 'choice') === 'short' ? 'short' : ((q.type || 'choice') === 'truefalse' ? 'truefalse' : 'choice');
+            return `
             <div class="quiz-question-card" style="background:#1c2128; padding:20px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border-color);" id="q-card-${i}">
-                <p class="quiz-question-text"><strong>Q${i+1}：</strong> ${q.q}<span class="unanswered-note hidden">未作答</span></p>
-                <div class="quiz-options-list">
-                    ${q.o.map((opt, oi) => `<button class="btn btn-outline quiz-option-btn" onclick="Quiz.select(${i},${oi},this)"><span class="quiz-option-no">(${oi+1})</span><span class="quiz-option-text">${opt}</span></button>`).join('')}
-                </div>
-            </div>`).join('');
+                <p class="quiz-question-text"><strong>Q${i+1}：</strong> ${q.q}${qType === 'short' ? '<span class="manual-score-badge">簡答題｜人工計分</span>' : (qType === 'truefalse' ? '<span class="manual-score-badge">是非題</span>' : '')}<span class="unanswered-note hidden">未作答</span></p>
+                ${qType === 'short'
+                    ? `<textarea class="quiz-short-answer" placeholder="請輸入簡答內容..." oninput="Quiz.inputShort(${i}, this)"></textarea>`
+                    : `<div class="quiz-options-list">
+                        ${(Array.isArray(q.o) ? q.o : []).map((opt, oi) => `<button class="btn btn-outline quiz-option-btn" onclick="Quiz.select(${i},${oi},this)"><span class="quiz-option-no">(${oi+1})</span><span class="quiz-option-text">${opt}</span></button>`).join('')}
+                    </div>`}
+            </div>`;
+        }).join('');
         this.updateSubmitState();
         const adminBackBtn = document.getElementById('adminQuizBackBtn');
         if (adminBackBtn) adminBackBtn.classList.toggle('hidden', !App.isInstructor);
@@ -4710,6 +4888,17 @@ const Quiz = {
         App.showSec('sec-quiz');
         this.setScoreSyncOverlay(false);
         resetStartButton();
+    },
+    inputShort: function(qi, textarea) {
+        const value = textarea ? String(textarea.value || '').trim() : '';
+        this.ans[qi] = value ? value : null;
+        const card = textarea ? textarea.closest('.quiz-question-card') : null;
+        if (card) {
+            card.classList.remove('q-card-unanswered');
+            const note = card.querySelector('.unanswered-note');
+            if (note) note.classList.add('hidden');
+        }
+        this.updateSubmitState();
     },
     select: function(qi, oi, btn) {
         this.ans[qi] = oi;
@@ -4815,11 +5004,18 @@ const Quiz = {
         body.innerHTML = `
             <div style="margin-bottom:14px; color:#8b949e; line-height:1.6;">請檢查本次作答內容。確認無誤後，再按「確認送出」完成計分。</div>
             ${App.activeCourse.questions.map((q, i) => {
+                const qType = (q.type || 'choice') === 'short' ? 'short' : ((q.type || 'choice') === 'truefalse' ? 'truefalse' : 'choice');
                 const selectedIndex = this.ans[i];
+                if (qType === 'short') {
+                    return `<div class="review-answer-card">
+                        <div class="review-q-title">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
+                        <div class="review-selected">簡答內容：${Admin.esc(String(selectedIndex || ''))}</div>
+                    </div>`;
+                }
                 const selectedText = q.o[selectedIndex] || '';
                 return `<div class="review-answer-card">
                     <div class="review-q-title">Q${i + 1}：${Admin.esc(q.q)}</div>
-                    <div class="review-selected">答案：<strong>(${selectedIndex + 1})</strong> ${Admin.esc(selectedText)}</div>
+                    <div class="review-selected">答案：<strong>(${Number(selectedIndex) + 1})</strong> ${Admin.esc(selectedText)}</div>
                 </div>`;
             }).join('')}
         `;
@@ -4934,7 +5130,14 @@ const Quiz = {
         area.innerHTML = `
             <div class="result-answer-title">正確答案</div>
             ${App.activeCourse.questions.map((q, i) => {
+                const qType = (q.type || 'choice') === 'short' ? 'short' : ((q.type || 'choice') === 'truefalse' ? 'truefalse' : 'choice');
                 const userIndex = this.ans[i];
+                if (qType === 'short') {
+                    return `<div class="result-answer-card">
+                        <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
+                        <div class="result-answer-row">你的作答：<span class="result-answer-user">${Admin.esc(String(userIndex || ''))}</span></div>
+                    </div>`;
+                }
                 const correctIndex = q.a;
                 const userText = q.o[userIndex] || '';
                 const correctText = q.o[correctIndex] || '';
@@ -4942,7 +5145,7 @@ const Quiz = {
                 return `<div class="result-answer-card ${isCorrect ? 'correct' : 'wrong'}">
                     <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)}</div>
                     <div class="result-answer-row">答案：<span class="result-answer-correct">(${correctIndex + 1}) ${Admin.esc(correctText)}</span></div>
-                    <div class="result-answer-row">你的作答：<span class="result-answer-user ${isCorrect ? '' : 'wrong'}">(${userIndex + 1}) ${Admin.esc(userText)}</span> ${isCorrect ? '✅' : '❌'}</div>
+                    <div class="result-answer-row">你的作答：<span class="result-answer-user ${isCorrect ? '' : 'wrong'}">(${Number(userIndex) + 1}) ${Admin.esc(userText)}</span> ${isCorrect ? '✅' : '❌'}</div>
                 </div>`;
             }).join('')}
         `;
@@ -4959,19 +5162,38 @@ const Quiz = {
                 return;
             }
 
-            const correctCount = answers.filter((a, i) => questions[i] && a === questions[i].a).length;
-            const score = Math.round((correctCount / answers.length) * 100);
+            const choiceIndexes = questions.map((q, i) => ((q.type || 'choice') === 'short' ? -1 : i)).filter(i => i >= 0);
+            const manualRequired = questions.some(q => (q.type || 'choice') === 'short');
+            const correctCount = choiceIndexes.filter(i => questions[i] && answers[i] === questions[i].a).length;
+            const score = choiceIndexes.length ? Math.round((correctCount / choiceIndexes.length) * 100) : 0;
             const passScoreNow = App.getPassScore(course);
-            const passedNow = score >= passScoreNow;
+            const passedNow = !manualRequired && score >= passScoreNow;
             const nowText = DateUtil.format();
-            const currentKey = `${App.user || ''}__${course.id || ''}__${answers.join(',')}`;
+            const currentKey = `${App.user || ''}__${course.id || ''}__${answers.map(a => String(a ?? '')).join('|')}`;
             const answerDetails = questions.map((q, i) => {
+                const qType = (q.type || 'choice') === 'short' ? 'short' : 'choice';
+                const opts = Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [];
+                if (qType === 'short') {
+                    return {
+                        questionNo: i + 1,
+                        questionId: String(q.id || `q${i + 1}`),
+                        questionType: 'short',
+                        questionText: String(q.q || ''),
+                        options: [],
+                        userAnswerIndex: null,
+                        userAnswerText: String(answers[i] || ''),
+                        correctAnswerIndex: null,
+                        correctAnswerText: '',
+                        isCorrect: false,
+                        needsManualScore: true
+                    };
+                }
                 const userIndex = Number(answers[i]);
                 const correctIndex = Number(q.a);
-                const opts = Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [];
                 return {
                     questionNo: i + 1,
                     questionId: String(q.id || `q${i + 1}`),
+                    questionType: qType,
                     questionText: String(q.q || ''),
                     options: opts,
                     userAnswerIndex: Number.isFinite(userIndex) ? userIndex : null,
@@ -4999,14 +5221,16 @@ const Quiz = {
                     passScore: Number(passScoreNow),
                     d: nowText,
                     date: nowText,
-                    note: '',
+                    note: manualRequired ? '含簡答題，需人工計分' : '',
+                    manualReviewRequired: manualRequired,
                     answerDetails: answerDetails,
                     questionSnapshot: questions.map((q, i) => ({
                         questionNo: i + 1,
                         questionId: String(q.id || `q${i + 1}`),
+                        questionType: (q.type || 'choice') === 'short' ? 'short' : 'choice',
                         questionText: String(q.q || ''),
                         options: Array.isArray(q.o) ? q.o.map(o => String(o || '')) : [],
-                        correctAnswerIndex: Number(q.a)
+                        correctAnswerIndex: (q.type || 'choice') === 'short' ? null : Number(q.a)
                     }))
                 };
             }
@@ -5050,8 +5274,8 @@ const Quiz = {
             App.showSec('sec-res');
             const finalScoreEl = document.getElementById('finalScore');
             if (finalScoreEl) {
-                finalScoreEl.innerText = score;
-                finalScoreEl.style.color = passedNow ? 'var(--success-color)' : 'var(--danger-color)';
+                finalScoreEl.innerText = manualRequired ? `${score}（選擇題暫計）` : score;
+                finalScoreEl.style.color = manualRequired ? 'var(--warning-color)' : (passedNow ? 'var(--success-color)' : 'var(--danger-color)');
             }
             const resultPassNote = document.getElementById('resultPassNote');
             if (resultPassNote) {
@@ -5059,10 +5283,10 @@ const Quiz = {
                     resultPassNote.innerText = `管理員測試模式，本次分數不列入測驗紀錄。及格標準：${passScoreNow} 分。`;
                     resultPassNote.style.color = 'var(--warning-color)';
                 } else {
-                    const baseText = `${passedNow ? '及格' : '未及格'}（及格標準：${passScoreNow} 分）`;
+                    const baseText = manualRequired ? `含簡答題，需人工計分；選擇題暫計 ${score} 分` : `${passedNow ? '及格' : '未及格'}（及格標準：${passScoreNow} 分）`;
                     resultPassNote.setAttribute('data-result-base', baseText);
-                    resultPassNote.innerText = `${baseText}｜成績已寫入 Supabase，可以關閉頁面。`;
-                    resultPassNote.style.color = passedNow ? 'var(--success-color)' : 'var(--danger-color)';
+                    resultPassNote.innerText = `${baseText}｜成績與作答已寫入 Supabase，可以關閉頁面。`;
+                    resultPassNote.style.color = manualRequired ? 'var(--warning-color)' : (passedNow ? 'var(--success-color)' : 'var(--danger-color)');
                 }
             }
             try {
