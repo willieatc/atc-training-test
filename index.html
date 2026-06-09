@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ATC_V001_ACCOUNT_BATCH_DELETE_SCORE_TOOLBAR_SWAP -->
 <!-- ATC_V001_SCORE_TABLE_COMPACT -->
 <!-- ATC_V001_NUMBER_INPUT_NO_SPINNER -->
 <!-- ATC_V001_NUMBER_SPINNER_TRANSPARENT -->
@@ -2124,6 +2125,35 @@ body.question-sort-active .editor-helper {
             #scoreTableArea table th:nth-child(7),
             #scoreTableArea table td:nth-child(7) {
                 max-width: 110px;
+            }
+        }
+
+    
+        /* V001 patch：帳號批次刪除與成績工具列左右互換 */
+        #accountListArea .account-card {
+            grid-template-columns: auto 1fr !important;
+        }
+        #accountListArea .account-actions {
+            display: none !important;
+        }
+        #scoreTableArea .score-toolbar-swapped {
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        #scoreTableArea .score-toolbar-swapped .batch-actions {
+            order: 1;
+            margin-right: auto;
+        }
+        #scoreTableArea .score-toolbar-swapped .score-count-note {
+            order: 2;
+            margin-left: auto;
+            text-align: right;
+            white-space: nowrap;
+        }
+        @media (max-width: 900px) {
+            #scoreTableArea .score-toolbar-swapped .score-count-note {
+                text-align: left;
+                margin-left: 0;
             }
         }
 
@@ -4559,9 +4589,7 @@ const Admin = {
                     <span class="account-meta-inline account-employee">員工編號：${Admin.esc(employeeText)}</span>
                     <span class="account-meta-inline">成績紀錄：${recordCount} 筆</span>
                 </div>
-                <div class="account-actions">
-                    <button class="btn btn-danger btn-sm" onclick="Admin.deleteUser('${safeU}')">刪除帳號</button>
-                </div>
+
             </div>`;
         }).join('') : '<div style="background:#1c2128; border:1px dashed var(--border-color); padding:25px; border-radius:10px; text-align:center; color:#8b949e;">目前尚無帳號資料</div>';
 
@@ -4579,7 +4607,7 @@ const Admin = {
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e; white-space:nowrap;">
                         <input type="checkbox" class="row-check" id="selectVisibleAccounts" onchange="Admin.toggleVisibleUsers(this.checked)"> 選取目前顯示帳號
                     </label>
-                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteUsers()">批次刪除帳號</button>
+                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteUsers()">刪除帳號</button>
                 </div>
             </div>
             <div id="accountListArea">${listHtml}</div>
@@ -5195,15 +5223,15 @@ const Admin = {
         const filtered = this.getFilteredScoreItems();
 
         document.getElementById('scoreTableArea').innerHTML = `
-            <div class="batch-toolbar">
-                <div style="font-size:13px; color:#8b949e;">目前顯示 ${filtered.length} 筆測驗紀錄｜匯出將依目前篩選結果產生檔案</div>
+            <div class="batch-toolbar score-toolbar-swapped">
                 <div class="batch-actions">
-                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e; white-space:nowrap;">
                         <input type="checkbox" class="row-check" id="selectVisibleScores" onchange="Admin.toggleVisibleScoreRecords(this.checked)"> 選取目前顯示紀錄
                     </label>
                     <button class="btn btn-warning btn-sm" onclick="Admin.batchUnlockSelected()">解鎖測驗</button>
                     <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteScoreRecords()">刪除紀錄</button>
                 </div>
+                <div class="score-count-note" style="font-size:13px; color:#8b949e;">目前顯示 ${filtered.length} 筆測驗紀錄｜匯出將依目前篩選結果產生檔案</div>
             </div>
             <table>
                 <thead>
