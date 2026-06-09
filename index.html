@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- ATC_V001_NUMBER_SPINNER_TRANSPARENT -->
+<!-- ATC_V001_SCORE_HEADER_NOWRAP -->
+<!-- ATC_V001_SCORE_ROW_ACTIONS_BATCH_ONLY -->
 <!-- ATC_V001_MANUAL_SCORE_SHORT_ONLY_EMPLOYEE_TEXT_EXPORT -->
 <!-- ATC_V001_MANUAL_SCORE_PER_SHORT_ANSWER_NO_SQL -->
 <!-- ATC_V001_FINAL_SCORE_EDIT_FUNCTION -->
@@ -1930,6 +1933,76 @@ body.question-sort-active .editor-helper {
             font-weight: 800 !important;
             line-height: 1.2 !important;
             vertical-align: middle;
+        }
+
+    
+        /* V001 patch：成績列操作精簡與批次工具列水平排列 */
+        #scoreTableArea .batch-toolbar {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #scoreTableArea .batch-actions {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #scoreTableArea .batch-actions label {
+            display: inline-flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            white-space: nowrap;
+        }
+        .btn-pending-score-disabled {
+            opacity: 0.48;
+            cursor: not-allowed !important;
+            filter: grayscale(0.35);
+        }
+
+    
+        /* V001 patch：成績表格表頭不換行 */
+        #scoreTableArea table th {
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            writing-mode: horizontal-tb !important;
+            text-orientation: mixed !important;
+            min-width: max-content;
+        }
+        #scoreTableArea table td {
+            white-space: nowrap;
+        }
+        #scoreTableArea table {
+            table-layout: auto !important;
+            min-width: 980px;
+        }
+        #scoreTableArea {
+            overflow-x: auto;
+        }
+
+    
+        /* V001 patch：配分與及格分數數字箭頭去背景 */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            background: transparent !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+            filter: none !important;
+        }
+        input[type="number"] {
+            background-clip: padding-box;
+        }
+        .q-score-field::-webkit-inner-spin-button,
+        .q-score-field::-webkit-outer-spin-button,
+        .pass-score-input::-webkit-inner-spin-button,
+        .pass-score-input::-webkit-outer-spin-button {
+            background: transparent !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
         }
 
     </style>
@@ -4478,7 +4551,7 @@ const Admin = {
     
     batchUnlockSelected: async function() {
         const checked = Array.from(document.querySelectorAll('#scoreTableArea .score-select:checked'));
-        if (!checked.length) return alert('請先勾選要解鎖的測驗紀錄。');
+        if (!checked.length) return alert('請先勾選要解鎖測驗的紀錄。');
 
         const items = [];
         const seen = {};
@@ -4497,7 +4570,7 @@ const Admin = {
         });
 
         if (!items.length) return alert('所選紀錄缺少學員或科目資訊，無法批次解鎖。');
-        if (!confirm(`確定批次解鎖 ${items.length} 筆測驗？解鎖後學員可重新測驗。`)) return;
+        if (!confirm(`確定解鎖 ${items.length} 筆測驗？解鎖後學員可重新測驗。`)) return;
 
         const ok = await Admin.withButtonStatus(async () => {
             return await App.batchUnlockQuiz(items);
@@ -5006,14 +5079,13 @@ const Admin = {
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e;">
                         <input type="checkbox" class="row-check" id="selectVisibleScores" onchange="Admin.toggleVisibleScoreRecords(this.checked)"> 選取目前顯示紀錄
                     </label>
-                    <button class="btn btn-warning btn-sm" onclick="Admin.batchUnlockSelected()">批次解鎖</button>
-                    <button class="btn btn-success btn-sm" onclick="Admin.batchRelockSelected()">重新鎖回</button>
-                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteScoreRecords()">批次刪除紀錄</button>
+                    <button class="btn btn-warning btn-sm" onclick="Admin.batchUnlockSelected()">解鎖測驗</button>
+                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteScoreRecords()">刪除紀錄</button>
                 </div>
             </div>
             <table>
                 <thead>
-                    <tr><th style="width:42px; text-align:center;">選取</th><th>代字</th><th>員工編號</th><th>測驗科目</th><th>分數</th><th>及格狀態</th><th>考核日期</th><th>測驗狀態</th><th>操作</th></tr>
+                    <tr><th style="width:42px; text-align:center; white-space:nowrap;">選取</th><th style="white-space:nowrap;">代字</th><th style="white-space:nowrap;">員工編號</th><th style="white-space:nowrap;">測驗科目</th><th style="white-space:nowrap;">分數</th><th style="white-space:nowrap;">及格狀態</th><th style="white-space:nowrap;">考核日期</th><th style="white-space:nowrap;">測驗狀態</th><th style="white-space:nowrap;">操作</th></tr>
                 </thead>
                 <tbody>
                     ${filtered.map(item => {
@@ -5036,10 +5108,7 @@ const Admin = {
                             <td>${locked ? '<span style="color:var(--warning-color); font-weight:bold;">🔒 已鎖定</span>' : '<span style="color:var(--success-color); font-weight:bold;">✅ 可測驗</span>'}</td>
                             <td>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                    ${course && locked ? `<button class="btn btn-warning btn-sm" onclick="Admin.unlockScoreByIndex(${item.idx})">解鎖再測驗</button>` : ''}
-                                    ${course && !locked ? `<button class="btn btn-success btn-sm" onclick="Admin.relockStudentQuiz(${item.idx})">重新鎖回</button>` : ''}
-                                    ${hasShortAnswer ? `<button class="btn btn-primary btn-sm" onclick="Admin.editFinalScore(${item.idx})">修改最終分數</button>` : ''}
-                                    <button class="btn btn-danger btn-sm" onclick="Admin.deleteScoreRecord(${item.idx})">刪除紀錄</button>
+                                    ${hasShortAnswer ? `<button class="btn btn-primary btn-sm" onclick="Admin.editFinalScore(${item.idx})">待計分</button>` : `<button class="btn btn-outline btn-sm btn-pending-score-disabled" disabled title="此筆沒有簡答題，不需人工計分">待計分</button>`}
                                 </div>
                             </td>
                         </tr>`;
