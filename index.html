@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ATC_V001_MANUAL_SCORE_SHORT_ONLY_EMPLOYEE_TEXT_EXPORT -->
 <!-- ATC_V001_MANUAL_SCORE_PER_SHORT_ANSWER_NO_SQL -->
 <!-- ATC_V001_FINAL_SCORE_EDIT_FUNCTION -->
 <!-- ATC_V001_QUIZ_POINTS_DISPLAY_MANUAL_SCORE_NOTE -->
@@ -3548,6 +3549,10 @@ const Admin = {
         const s = String(v ?? '');
         return `"${s.replace(/"/g, '""')}"`;
     },
+    csvTextCell: function(v) {
+        const s = String(v ?? '');
+        return `="${s.replace(/"/g, '""')}"`;
+    },
     parseCSV: function(text) {
         const rows = [];
         let row = [];
@@ -3684,7 +3689,7 @@ const Admin = {
             ['題目 (Question)', '選項列表 (以半形逗號分隔)', '正確答案索引 (1-4)', '備註說明'],
             ['範例：請在此輸入題目內容', '選項一,選項二,選項三,選項四', '1', '此欄可留空']
         ];
-        const csv = rows.map(row => row.map(v => Admin.csvCell(v)).join(',')).join('\n');
+        const csv = rows.map((row, rowIndex) => row.map((v, colIndex) => rowIndex > 0 && colIndex === 1 ? Admin.csvTextCell(v) : Admin.csvCell(v)).join(',')).join('\n');
         const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
         link.setAttribute("download", "題庫匯入範本.csv"); document.body.appendChild(link); link.click(); document.body.removeChild(link);
@@ -3712,7 +3717,7 @@ const Admin = {
             ]);
         });
 
-        const csv = rows.map(row => row.map(v => Admin.csvCell(v)).join(',')).join('\n');
+        const csv = rows.map((row, rowIndex) => row.map((v, colIndex) => rowIndex > 0 && colIndex === 1 ? Admin.csvTextCell(v) : Admin.csvCell(v)).join(',')).join('\n');
         const safeTitle = String(course.title || '題庫')
             .replace(/[\\/:*?"<>|]/g, '_')
             .replace(/\s+/g, '_')
@@ -4778,18 +4783,7 @@ const Admin = {
             r.manualReviewRequired = false;
             r.manualScoreFinalized = true;
         } else {
-            const oldScore = Number(r.s ?? r.score ?? 0);
-            const input = prompt(`請輸入「${r.u || r.userCode || ''}」於「${r.c || r.courseTitle || ''}」的最終分數：`, Number.isFinite(oldScore) ? String(oldScore) : '');
-            if (input === null) return;
-            const nextScore = Number(String(input).trim());
-            if (!Number.isFinite(nextScore) || nextScore < 0 || nextScore > 100) return alert('請輸入 0 到 100 之間的分數。');
-            r.s = Math.round(nextScore * 10) / 10;
-            r.score = r.s;
-            const noteParts = String(r.note || '').split('；').filter(Boolean).filter(part => !part.includes('人工計分後修正'));
-            noteParts.push(`人工計分後修正為 ${r.s} 分（${nowText}）`);
-            r.note = noteParts.join('；');
-            r.manualReviewRequired = false;
-            r.manualScoreFinalized = true;
+            return alert('此筆紀錄沒有簡答題，不需要修改分數。');
         }
 
         const ok = await Admin.withButtonStatus(async () => {
@@ -5028,6 +5022,7 @@ const Admin = {
                         const course = App.state.courses.find(c => c.id === r.cid || c.title === r.c);
                         const locked = course ? App.isQuizLocked(r.u, course.id) : false;
                         const passScore = Number(r.passScore || (course ? App.getPassScore(course) : 70));
+                        const hasShortAnswer = Array.isArray(r.answerDetails) && r.answerDetails.some(ans => ans && (ans.questionType === 'short' || ans.needsManualScore || ans.manualScore !== undefined));
                         const safeUser = String(r.u).replace(/'/g, "\'");
                         return `
                         <tr>
@@ -5043,7 +5038,7 @@ const Admin = {
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                                     ${course && locked ? `<button class="btn btn-warning btn-sm" onclick="Admin.unlockScoreByIndex(${item.idx})">解鎖再測驗</button>` : ''}
                                     ${course && !locked ? `<button class="btn btn-success btn-sm" onclick="Admin.relockStudentQuiz(${item.idx})">重新鎖回</button>` : ''}
-                                    <button class="btn btn-primary btn-sm" onclick="Admin.editFinalScore(${item.idx})">修改最終分數</button>
+                                    ${hasShortAnswer ? `<button class="btn btn-primary btn-sm" onclick="Admin.editFinalScore(${item.idx})">修改最終分數</button>` : ''}
                                     <button class="btn btn-danger btn-sm" onclick="Admin.deleteScoreRecord(${item.idx})">刪除紀錄</button>
                                 </div>
                             </td>
