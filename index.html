@@ -2346,7 +2346,23 @@ body.question-sort-active .editor-helper {
             .image-lightbox-close { top: 8px; right: 8px; }
         }
 
-    </style>
+    
+
+        /* v141：管理後台左側功能區可捲動，避免測驗成績模組內容較多時底部「返回首頁」看不到 */
+        #sec-admin .admin-sidebar {
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(88,166,255,0.65) transparent;
+        }
+        #sec-admin .admin-sidebar::-webkit-scrollbar { width: 6px; }
+        #sec-admin .admin-sidebar::-webkit-scrollbar-track { background: transparent; }
+        #sec-admin .admin-sidebar::-webkit-scrollbar-thumb { background: rgba(88,166,255,0.55); border-radius: 999px; }
+        #sec-admin .admin-sidebar > button:last-of-type {
+            flex: 0 0 auto;
+            margin-bottom: 4px;
+        }
+</style>
 </head>
 <body oncontextmenu="return false;"> 
 
@@ -5253,6 +5269,10 @@ const Admin = {
     editFinalScore: async function(recordIndex) {
         const r = App.state.records[recordIndex];
         if (!r) return alert('找不到此筆測驗紀錄。');
+        if (r.manualScoreFinalized) {
+            const okToEdit = confirm('此筆成績已完成人工計分，是否要修改計分？');
+            if (!okToEdit) return;
+        }
 
         const info = Admin.getManualScoreInfo(r);
         const shortItems = info.shortItems;
@@ -5532,6 +5552,9 @@ const Admin = {
                         const locked = course ? App.isQuizLocked(r.u, course.id) : false;
                         const passScore = Number(r.passScore || (course ? App.getPassScore(course) : 70));
                         const hasShortAnswer = Array.isArray(r.answerDetails) && r.answerDetails.some(ans => ans && (ans.questionType === 'short' || ans.needsManualScore || ans.manualScore !== undefined));
+                        const manualFinalized = !!r.manualScoreFinalized;
+                        const manualScoreBtnText = manualFinalized ? '已計分' : '待計分';
+                        const manualScoreBtnTitle = manualFinalized ? '此筆已完成人工計分，點擊後可確認是否修改' : '為簡答題進行人工計分';
                         const safeUser = String(r.u).replace(/'/g, "\'");
                         return `
                         <tr>
@@ -5545,7 +5568,7 @@ const Admin = {
                             <td>${locked ? '<span style="color:var(--warning-color); font-weight:bold;">已鎖定</span>' : '<span style="color:var(--success-color); font-weight:bold;">可測驗</span>'}</td>
                             <td>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                    ${hasShortAnswer ? `<button class="btn btn-primary btn-sm" onclick="Admin.editFinalScore(${item.idx})">待計分</button>` : `<button class="btn btn-outline btn-sm btn-pending-score-disabled" disabled title="此筆沒有簡答題，不需人工計分">待計分</button>`}
+                                    ${hasShortAnswer ? `<button class="btn ${manualFinalized ? 'btn-success' : 'btn-primary'} btn-sm" title="${manualScoreBtnTitle}" onclick="Admin.editFinalScore(${item.idx})">${manualScoreBtnText}</button>` : `<button class="btn btn-outline btn-sm btn-pending-score-disabled" disabled title="此筆沒有簡答題，不需人工計分">待計分</button>`}
                                 </div>
                             </td>
                         </tr>`;
