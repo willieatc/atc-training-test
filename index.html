@@ -964,10 +964,6 @@
             .backup-inline-tools {
                 grid-template-columns: 1fr 1fr;
             }
-            #sec-admin.active .admin-sidebar > .admin-settings-bottom-tab {
-                margin-top: 8px;
-                min-height: 42px;
-            }
         }
         @keyframes adminPanelFadeIn {
             from { opacity: 0; transform: translateY(6px); }
@@ -1882,7 +1878,7 @@ body.question-sort-active .editor-helper {
         }
 
     
-        /* V001 patch：是非題顯示一致、簡答配分、${App.textLabel('questionManualAddButtonText', '手動加題')}移至下方 */
+        /* V001 patch：是非題顯示一致、簡答配分、手動加題移至下方 */
         .tf-symbol {
             display: inline-flex;
             align-items: center;
@@ -2508,19 +2504,6 @@ body.question-sort-active .editor-helper {
         #sec-admin.active .admin-sidebar > input {
             flex: 0 0 auto;
         }
-        #sec-admin.active .admin-sidebar > .admin-settings-bottom-tab {
-            flex: 0 0 auto;
-            width: 100%;
-            margin-top: 10px;
-            margin-bottom: 0;
-            border: 1px solid var(--border-color);
-            background: #0d1117;
-        }
-        #sec-admin.active .admin-sidebar > .admin-settings-bottom-tab.active {
-            background: #21262d;
-            color: var(--accent-color);
-            border-color: rgba(88,166,255,0.45);
-        }
         .result-short-answer-box,
         .review-short-answer-box {
             margin-top: 8px;
@@ -2583,16 +2566,6 @@ body.question-sort-active .editor-helper {
             gap: 10px;
             flex-wrap: wrap;
             margin-top: 12px;
-        }
-
-        .settings-subtitle {
-            margin: 18px 0 8px;
-            padding: 8px 10px;
-            border-left: 3px solid var(--accent-color);
-            background: rgba(88,166,255,0.08);
-            color: var(--accent-color);
-            font-weight: 700;
-            border-radius: 6px;
         }
         .settings-help {
             font-size: 12px;
@@ -2830,8 +2803,8 @@ body.question-sort-active .editor-helper {
                         <button id="backupImportBtn" class="btn btn-primary btn-sm" onclick="document.getElementById('backupImportFile').click()">匯入備份</button>
                     </div>
                     <input type="file" id="backupImportFile" accept=".json,application/json" class="hidden" onchange="Backup.importLocal(this)">
-                    <button id="adminSidebarHomeBtn" class="btn btn-outline btn-sm" style="width:100%;" onclick="App.toHome()">返回首頁</button>
-                    <div class="admin-tab admin-settings-bottom-tab" id="t-settings" onclick="App.switchAdmin('settings')">🛠️ 系統設定<br><span style="font-size:11px;color:#8b949e;font-weight:400;">基本／進階／按鈕</span></div>
+                    <button id="adminSidebarHomeBtn" class="btn btn-outline btn-sm" style="width:100%; margin-bottom:10px;" onclick="App.toHome()">返回首頁</button>
+                    <div class="admin-tab" id="t-settings" onclick="App.switchAdmin('settings')" style="margin-top:0; border:1px solid var(--border-color); background:#0d1117;">🛠️ 系統設定<br><span style="font-size:11px;color:#8b949e;font-weight:400;">基本／進階／按鈕</span></div>
                 </div>
                 <div class="admin-content scroll-area" id="adminContent">
                     <div id="panel-rec" class="hidden"><div id="userTable"></div></div>
@@ -3564,97 +3537,6 @@ const App = {
         adminSettingsTabSubText: '基本／進階／按鈕',
         adminRecTabText: '人員帳號管理',
         adminRecTabEmoji: '🔒',
-        // V007：全站提示／標籤／placeholder 安全自訂文字
-        loginUserPlaceholder: '代字',
-        loginPasswordPlaceholder: '密碼',
-        adminPasswordPromptTitle: '管理員登入',
-        editorPageTitle: '📚 教材與題庫編輯',
-        editorPageHelp: '${App.textLabel('editorPageHelp', '編輯科目、教材與題庫，或拖拉科目卡片調整順序後，記得按下儲存變更才會生效。')}',
-        courseSettingTitle: '科目設定與教材',
-        courseTitleLabel: '科目名稱',
-        courseTitlePlaceholder: '請輸入科目名稱',
-        passScoreLabel: '及格分數',
-        passScorePlaceholder: '及格分數',
-        materialUrlLabel: '教材清單／教材網址',
-        materialUrlPlaceholder: '可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼',
-        materialConfiguredText: '● 已設定 {count} 個教材',
-        materialUnsetText: '尚未設定教材',
-        materialAddButtonText: '新增教材',
-        materialRemoveButtonText: '移除教材',
-        questionGroupTitle: '題組共用圖片',
-        questionGroupHelp: '${App.textLabel('questionGroupHelp', '同一張參考圖可在此上傳一次，再讓多個題目選用，避免每題重複上傳。')}',
-        questionGroupAddButtonText: '新增題組圖片',
-        questionGroupNamePlaceholder: '題組名稱，例如：題組A／雷達圖',
-        questionGroupUploadButtonText: '上傳圖片',
-        questionGroupDeleteButtonText: '刪除題組',
-        questionGroupNoneOptionText: '不${App.textLabel('questionUseGroupImageButtonText', '使用題組圖片')}',
-        questionGroupDefaultName: '題組圖片',
-        questionSectionTitle: '題庫內容',
-        questionSectionHelp: '${App.textLabel('questionSectionHelp', '可手動新增題目，或用 CSV 匯入／匯出題庫；按「選項」可展開編輯。')}',
-        questionExportButtonText: '匯出題庫',
-        questionImportButtonText: '匯入題庫',
-        questionDeleteAllButtonText: '${App.textLabel('questionDeleteAllButtonText', '刪除所有題目')}',
-        questionTextPlaceholder: '請輸入題目內容',
-        questionImageUploadButtonText: '${App.textLabel('questionImageUploadButtonText', '上傳參考圖片')}',
-        questionUseGroupImageButtonText: '${App.textLabel('questionUseGroupImageButtonText', '使用題組圖片')}',
-        questionRemoveImageButtonText: '${App.textLabel('questionRemoveImageButtonText', '移除圖片')}',
-        questionReferenceAnswerLabel: '${App.textLabel('questionReferenceAnswerLabel', '簡答題參考答案')}',
-        questionReferenceAnswerPlaceholder: '可輸入批改用參考答案，學生作答時不會顯示',
-        questionOptionsToggleText: '選項',
-        questionAnswerLabel: '答案',
-        questionManualAddButtonText: '${App.textLabel('questionManualAddButtonText', '手動加題')}',
-        questionTypeTitle: '題型',
-        questionChoiceText: '選擇題',
-        questionTrueFalseText: '是非題',
-        questionShortText: '簡答題',
-        questionPointsLabel: '配分',
-        questionAutoPointsPlaceholder: '自動',
-        courseEmptyStateText: '${App.textLabel('courseEmptyStateText', '目前尚無科目，請先點選右上方「新增科目」。')}',
-        scorePageTitle: '🔍 測驗成績查詢',
-        scoreExportButtonText: '匯出成績',
-        scoreImportLegacyButtonText: '匯入舊成績',
-        scoreExportAnswerButtonText: '${App.textLabel('scoreExportAnswerButtonText', '匯出逐題紀錄')}',
-        scoreSearchPlaceholder: '搜尋代字／員工編號...',
-        scoreAllCoursesOptionText: '所有科目',
-        scoreSelectVisibleText: '${App.textLabel('scoreSelectVisibleText', '選取目前顯示紀錄')}',
-        scoreUnlockButtonText: '${App.textLabel('scoreUnlockButtonText', '解鎖測驗')}',
-        scoreDeleteButtonText: '${App.textLabel('scoreDeleteButtonText', '刪除紀錄')}',
-        scoreCountNoteTemplate: '目前顯示 {count} ${App.textLabel('accountRecordUnit', '筆')}測驗紀錄｜匯出將依目前篩選結果產生檔案',
-        scoreHeaderSelect: '選取',
-        scoreHeaderUser: '代字',
-        scoreHeaderEmployeeId: '員工編號',
-        scoreHeaderCourse: '測驗科目',
-        scoreHeaderScore: '分數',
-        scoreHeaderPassStatus: '及格狀態',
-        scoreHeaderDate: '考核日期',
-        scoreHeaderQuizStatus: '測驗狀態',
-        scoreHeaderAction: '操作',
-        scorePassText: '及格',
-        scoreFailText: '未及格',
-        scoreLockedText: '已鎖定',
-        scoreUnlockedText: '可測驗',
-        scoreManualDoneText: App.textLabel('scoreManualDoneText', '已計分'),
-        scoreManualPendingText: App.textLabel('scoreManualPendingText', '待計分'),
-        scoreManualNoShortTitle: '此筆沒有簡答題，不需人工計分',
-        scoreNoRecordText: '${App.textLabel('scoreNoRecordText', '無符合條件的成績紀錄')}',
-        accountPageTitle: '🔒 人員帳號管理',
-        accountChangeAdminPasswordText: '修改管理員密碼',
-        accountSearchPlaceholder: '搜尋代字／員工編號...',
-        accountSelectVisibleText: '${App.textLabel('accountSelectVisibleText', '選取目前顯示帳號')}',
-        accountBatchDeleteButtonText: '${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}',
-        accountEmployeeLabel: '${App.textLabel('accountEmployeeLabel', '員工編號：')}',
-        accountRecordLabel: '${App.textLabel('accountRecordLabel', '成績紀錄：')}',
-        accountRecordUnit: '筆',
-        accountNotRegisteredText: '${App.textLabel('accountNotRegisteredText', '未登錄')}',
-        accountEmptyText: '${App.textLabel('accountEmptyText', '目前尚無帳號資料')}',
-        accountSearchEmptyText: '${App.textLabel('accountSearchEmptyText', '查無符合的代字')}',
-        accountCountTemplate: '共 {count} 組代字',
-        accountFilterCountTemplate: '符合 {visible} 組／共 {total} 組代字',
-        quizShortAnswerPlaceholder: '請輸入簡答內容...',
-        quizNoQuestionsAlert: '本科目尚無考題。',
-        quizLockedAlert: '本科目已完成測驗，需由管理員於「測驗成績查詢」解鎖後才能再次測驗。',
-        employeePromptText: '請輸入${App.textLabel('accountEmployeeLabel', '員工編號：')}',
-        employeeRequiredAlert: '請輸入員工編號後再進入考核。',
         adminPasswordCancelButtonText: '取消',
         adminPasswordCancelButtonEmoji: '',
         adminPasswordSubmitButtonText: '登入後台',
@@ -3669,10 +3551,6 @@ const App = {
     getSystemSetting: function(key) {
         const settings = this.ensureSystemSettings();
         return settings[key] !== undefined ? settings[key] : this.DEFAULT_SYSTEM_SETTINGS[key];
-    },
-    textLabel: function(key, fallback) {
-        const val = this.getSystemSetting(key);
-        return (val === undefined || val === null || String(val) === '') ? String(fallback || '') : String(val);
     },
     setSystemSetting: function(key, value) {
         this.ensureSystemSettings();
@@ -4624,12 +4502,12 @@ const App = {
         ['rec', 'score', 'edit', 'settings'].forEach(p => { const panel = document.getElementById(`panel-${p}`); const tabEl = document.getElementById(`t-${p}`); if (panel) panel.classList.add('hidden'); if (tabEl) tabEl.classList.remove('active'); });
         document.getElementById(`panel-${tab}`).classList.remove('hidden'); document.getElementById(`t-${tab}`).classList.add('active');
 
+        const labelMap = { score: '測驗成績查詢', edit: '教材與題庫編輯', settings: '系統設定', rec: '人員帳號管理' };
         const currentLabel = document.getElementById('adminMobileCurrent');
-        if (currentLabel) currentLabel.innerText = `目前展開：${this.adminTabTitle ? this.adminTabTitle(tab) : tab}`;
+        if (currentLabel) currentLabel.innerText = `目前展開：${labelMap[tab] || ''}`;
 
         this.showSec('sec-admin');
         if (tab === 'edit') Admin.renderEditor(); else if (tab === 'rec') Admin.renderUsers(); else if (tab === 'settings') Admin.renderSettings(); else Admin.renderScores();
-        if (this.applySystemSettings) this.applySystemSettings();
 
         // 手機後台：點選功能後自動把畫面帶到內容區，避免只看到側欄。
         if (window.matchMedia && window.matchMedia('(max-width: 760px)').matches) {
@@ -4662,46 +4540,6 @@ const Admin = {
         setTimeout(() => el.classList.remove('settings-card-highlight'), 900);
     },
 
-    TEXT_SETTING_GROUPS: [
-        { title: '首頁／登入／前台測驗', items: [
-            ['loginUserPlaceholder','登入代字輸入框提示'], ['loginPasswordPlaceholder','登入密碼輸入框提示'], ['quizShortAnswerPlaceholder','簡答題作答框提示'], ['employeePromptText','員工編號輸入提示'], ['employeeRequiredAlert','未輸入員工編號提示'], ['quizLockedAlert','已測驗鎖定提示'], ['quizNoQuestionsAlert','無考題提示']
-        ]},
-        { title: '教材與題庫編輯', items: [
-            ['editorPageTitle','教材題庫頁標題'], ['editorPageHelp','教材題庫頁說明', true], ['courseSettingTitle','科目設定區標題'], ['courseTitleLabel','科目名稱標籤'], ['courseTitlePlaceholder','科目名稱輸入框提示'], ['passScoreLabel','及格分數標籤'], ['passScorePlaceholder','及格分數輸入框提示'], ['materialUrlLabel','教材網址標籤'], ['materialUrlPlaceholder','教材網址輸入框提示'], ['materialConfiguredText','教材已設定提示'], ['materialUnsetText','教材未設定提示'], ['materialAddButtonText','新增教材按鈕'], ['materialRemoveButtonText','移除教材按鈕'], ['courseEmptyStateText','無科目提示', true]
-        ]},
-        { title: '題組圖片／題目欄位', items: [
-            ['questionGroupTitle','題組圖片標題'], ['questionGroupHelp','題組圖片說明', true], ['questionGroupAddButtonText','新增題組圖片按鈕'], ['questionGroupNamePlaceholder','題組名稱輸入框提示'], ['questionGroupUploadButtonText','題組上傳圖片按鈕'], ['questionGroupDeleteButtonText','刪除題組按鈕'], ['questionGroupNoneOptionText','不使用題組選項'], ['questionSectionTitle','題庫內容標題'], ['questionSectionHelp','題庫內容說明', true], ['questionExportButtonText','匯出題庫按鈕'], ['questionImportButtonText','匯入題庫按鈕'], ['questionDeleteAllButtonText','${App.textLabel('questionDeleteAllButtonText', '刪除所有題目')}按鈕'], ['questionTextPlaceholder','題目內容輸入框提示'], ['questionImageUploadButtonText','${App.textLabel('questionImageUploadButtonText', '上傳參考圖片')}按鈕'], ['questionUseGroupImageButtonText','${App.textLabel('questionUseGroupImageButtonText', '使用題組圖片')}按鈕'], ['questionRemoveImageButtonText','${App.textLabel('questionRemoveImageButtonText', '移除圖片')}按鈕'], ['questionReferenceAnswerLabel','${App.textLabel('questionReferenceAnswerLabel', '簡答題參考答案')}標籤'], ['questionReferenceAnswerPlaceholder','${App.textLabel('questionReferenceAnswerLabel', '簡答題參考答案')}輸入框提示'], ['questionOptionsToggleText','展開選項按鈕文字'], ['questionAnswerLabel','答案標籤'], ['questionManualAddButtonText','${App.textLabel('questionManualAddButtonText', '手動加題')}按鈕'], ['questionPointsLabel','配分標籤'], ['questionAutoPointsPlaceholder','配分輸入框提示']
-        ]},
-        { title: '測驗成績查詢', items: [
-            ['scorePageTitle','測驗成績頁標題'], ['scoreExportButtonText','匯出成績按鈕'], ['scoreImportLegacyButtonText','匯入舊成績按鈕'], ['scoreExportAnswerButtonText','${App.textLabel('scoreExportAnswerButtonText', '匯出逐題紀錄')}按鈕'], ['scoreSearchPlaceholder','成績搜尋框提示'], ['scoreAllCoursesOptionText','所有科目選項'], ['scoreSelectVisibleText','${App.textLabel('scoreSelectVisibleText', '選取目前顯示紀錄')}'], ['scoreUnlockButtonText','${App.textLabel('scoreUnlockButtonText', '解鎖測驗')}按鈕'], ['scoreDeleteButtonText','${App.textLabel('scoreDeleteButtonText', '刪除紀錄')}按鈕'], ['scoreCountNoteTemplate','成績筆數提示'], ['scoreHeaderSelect','表頭：選取'], ['scoreHeaderUser','表頭：代字'], ['scoreHeaderEmployeeId','表頭：員工編號'], ['scoreHeaderCourse','表頭：測驗科目'], ['scoreHeaderScore','表頭：分數'], ['scoreHeaderPassStatus','表頭：及格狀態'], ['scoreHeaderDate','表頭：考核日期'], ['scoreHeaderQuizStatus','表頭：測驗狀態'], ['scoreHeaderAction','表頭：操作'], ['scoreNoRecordText','無成績紀錄提示']
-        ]},
-        { title: '人員帳號管理', items: [
-            ['accountPageTitle','帳號管理頁標題'], ['accountChangeAdminPasswordText','修改管理員密碼按鈕'], ['accountSearchPlaceholder','帳號搜尋框提示'], ['accountSelectVisibleText','${App.textLabel('accountSelectVisibleText', '選取目前顯示帳號')}'], ['accountBatchDeleteButtonText','${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}按鈕'], ['accountEmployeeLabel','員工編號標籤'], ['accountRecordLabel','成績紀錄標籤'], ['accountRecordUnit','成績紀錄單位'], ['accountNotRegisteredText','${App.textLabel('accountNotRegisteredText', '未登錄')}文字'], ['accountEmptyText','無帳號資料提示'], ['accountSearchEmptyText','查無帳號提示'], ['accountCountTemplate','帳號總數提示'], ['accountFilterCountTemplate','帳號篩選筆數提示']
-        ]}
-    ],
-    renderTextSettingRow: function(key, label, multiline) {
-        const val = App.getSystemSetting(key);
-        const input = multiline
-            ? `<textarea id="settingText_${key}" class="input-field" rows="3">${Admin.esc(val || '')}</textarea>`
-            : `<input id="settingText_${key}" class="input-field" value="${Admin.esc(val || '')}">`;
-        return `<div class="settings-row"><label>${Admin.esc(label)}</label>${input}</div>`;
-    },
-    renderTextSettingsCard: function() {
-        return `<div class="settings-card settings-card-highlight" id="settingSectionTexts">
-            <h4>全站提示／欄位文字設定</h4>
-            <div class="settings-help" style="margin-bottom:12px;">這裡開放修改標題、欄位標籤、輸入框提示、空資料提示與說明文字；不開放會影響資料流程或判斷邏輯的設定。</div>
-            ${Admin.TEXT_SETTING_GROUPS.map(g => `<div class="settings-subtitle">${Admin.esc(g.title)}</div>${g.items.map(item => Admin.renderTextSettingRow(item[0], item[1], item[2])).join('')}`).join('')}
-        </div>`;
-    },
-    readTextSettingValues: function() {
-        const out = {};
-        Admin.TEXT_SETTING_GROUPS.forEach(g => (g.items || []).forEach(item => {
-            const key = item[0];
-            const el = document.getElementById(`settingText_${key}`);
-            out[key] = el ? el.value : App.getSystemSetting(key);
-        }));
-        return out;
-    },
     renderSettings: function() {
         App.ensureSystemSettings();
         const s = App.state.systemSettings;
@@ -4722,7 +4560,6 @@ const Admin = {
                     <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionAdvanced')">進階版面設定</button>
                     <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionButtons')">按鈕文字 / Emoji</button>
                     <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionSidebarMenu')">左側選單文字 / 圖示</button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionTexts')">全站提示 / 欄位文字</button>
                     <span class="settings-section-title-note">點上方按鈕可直接跳到設定區塊</span>
                 </div>
                 <div class="settings-card settings-card-highlight" id="settingSectionBasic">
@@ -4937,7 +4774,6 @@ const Admin = {
                     </div>
                     ${Admin.renderMenuSettingRow('人員帳號選單', 'AdminRecTab', s.adminRecTabText, s.adminRecTabEmoji)}
                 </div>
-                ${Admin.renderTextSettingsCard()}
                 <div class="settings-actions">
                     <button class="btn btn-success" onclick="Admin.saveSystemSettings()">儲存設定</button>
                     <button class="btn btn-outline" onclick="Admin.resetSystemSettings()">還原預設</button>
@@ -5017,7 +4853,6 @@ const Admin = {
             Admin.readMenuSettingPair('AdminSettingsTab', 'adminSettingsTabText', 'adminSettingsTabEmoji'),
             Admin.readMenuSettingPair('AdminRecTab', 'adminRecTabText', 'adminRecTabEmoji')
         );
-        const textValues = Admin.readTextSettingValues();
         return Object.assign({
             appTitle: (document.getElementById('settingAppTitle') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.appTitle,
             appSubtitle: (document.getElementById('settingAppSubtitle') || {}).value || '',
@@ -5049,7 +4884,7 @@ const Admin = {
             showSidebarMenuEmoji: !!((document.getElementById('settingShowSidebarMenuEmoji') || {}).checked),
             sidebarMenuEmojiPosition: (document.getElementById('settingSidebarMenuEmojiPosition') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.sidebarMenuEmojiPosition,
             adminSettingsTabSubText: (document.getElementById('settingAdminSettingsTabSubText') || {}).value || ''
-        }, buttonPairs, menuPairs, textValues);
+        }, buttonPairs, menuPairs);
     },
     uploadSettingBackgroundImage: async function(input) {
         const file = input && input.files && input.files[0] ? input.files[0] : null;
@@ -5123,9 +4958,9 @@ const Admin = {
         const rows = mats.map((m, mi) => `
             <div class="material-row ${mi === active ? '' : 'is-hidden'}" data-material-index="${mi}" data-material-id="${Admin.esc(m.id || `${course && course.id || 'course'}_mat_${mi + 1}`)}">
                 <select class="select-field material-editor-select" onchange="Admin.selectEditorMaterial(this)" aria-label="選擇要編輯的教材">${options}</select>
-                <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="${Admin.esc(App.textLabel('materialUrlPlaceholder', '可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼'))}">
-                <button class="btn btn-primary btn-sm material-action-btn" onclick="Admin.addMaterial(${ci})">${App.textLabel('materialAddButtonText', '新增教材')}</button>
-                <button class="btn btn-danger btn-sm material-action-btn" onclick="Admin.delSelectedMaterial(${ci}, this)">${App.textLabel('materialRemoveButtonText', '移除教材')}</button>
+                <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼">
+                <button class="btn btn-primary btn-sm material-action-btn" onclick="Admin.addMaterial(${ci})">新增教材</button>
+                <button class="btn btn-danger btn-sm material-action-btn" onclick="Admin.delSelectedMaterial(${ci}, this)">移除教材</button>
                 <input type="hidden" class="m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}">
             </div>`).join('');
         return `
@@ -5207,7 +5042,7 @@ const Admin = {
                 grid.style.removeProperty('overflow');
             }
         }
-        btn.innerHTML = collapsed ? '▸ ${App.textLabel('questionOptionsToggleText', '選項')}' : '▾ 選項';
+        btn.innerHTML = collapsed ? '▸ 選項' : '▾ 選項';
         btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
         btn.title = collapsed ? '展開選項' : '收合選項';
     },
@@ -5221,7 +5056,7 @@ const Admin = {
                 grid.style.setProperty('display', 'none', 'important');
             }
             if (btn) {
-                btn.innerHTML = '▸ ${App.textLabel('questionOptionsToggleText', '選項')}';
+                btn.innerHTML = '▸ 選項';
                 btn.setAttribute('aria-expanded', 'false');
                 btn.title = '展開選項';
             }
@@ -5359,20 +5194,20 @@ const Admin = {
             <div class="question-group-manager">
                 <div class="question-group-header">
                     <div>
-                        <div class="question-group-title">${App.textLabel('questionGroupTitle', '題組共用圖片')}</div>
-                        <div class="editor-helper">${App.textLabel('questionGroupHelp', '同一張參考圖可在此上傳一次，再讓多個題目選用，避免每題重複上傳。')}</div>
+                        <div class="question-group-title">題組共用圖片</div>
+                        <div class="editor-helper">同一張參考圖可在此上傳一次，再讓多個題目選用，避免每題重複上傳。</div>
                     </div>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.addQuestionGroup(${ci})">➕ ${App.textLabel('questionGroupAddButtonText', '新增題組圖片')}</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.addQuestionGroup(${ci})">➕ 新增題組圖片</button>
                 </div>
                 <div class="question-group-list">
                     ${groups.length ? groups.map((g, gi) => `
                         <div class="question-group-row" data-group-id="${Admin.esc(g.id)}">
-                            <input type="text" class="input-field qg-title" value="${Admin.esc(g.title || '')}" placeholder="${Admin.esc(App.textLabel('questionGroupNamePlaceholder', '題組名稱，例如：題組A／雷達圖'))}">
+                            <input type="text" class="input-field qg-title" value="${Admin.esc(g.title || '')}" placeholder="題組名稱，例如：題組A／雷達圖">
                             <input type="hidden" class="qg-img-data" value="${Admin.esc(g.imageData || '')}">
                             <div class="question-group-preview ${g.imageData ? 'has-image' : ''}">${g.imageData ? `<img src="${Admin.esc(g.imageData)}" alt="題組共用圖片" onclick="ImageLightbox.open(this.src)">` : ''}</div>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.qg-img-file').click()">${App.textLabel('questionGroupUploadButtonText', '上傳圖片')}</button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.qg-img-file').click()">上傳圖片</button>
                             <input type="file" class="qg-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionGroupImage(this)">
-                            <button type="button" class="btn btn-danger btn-sm" onclick="Admin.removeQuestionGroup(${ci}, ${gi})">${App.textLabel('questionGroupDeleteButtonText', '刪除題組')}</button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="Admin.removeQuestionGroup(${ci}, ${gi})">刪除題組</button>
                         </div>
                     `).join('') : ''}
                 </div>
@@ -5396,7 +5231,7 @@ const Admin = {
         const groups = Admin.getQuestionGroups(course);
         const removed = groups[gi];
         if (!removed) return;
-        if (!confirm(`確定刪除「${removed.title || '題組圖片'}」？使用此題組的題目會改為不${App.textLabel('questionUseGroupImageButtonText', '使用題組圖片')}。`)) return;
+        if (!confirm(`確定刪除「${removed.title || '題組圖片'}」？使用此題組的題目會改為不使用題組圖片。`)) return;
         groups.splice(gi, 1);
         (course.questions || []).forEach(q => { if (String(q.imageGroupId || '') === String(removed.id)) q.imageGroupId = ''; });
         App.lastOpenedCourseId = course.id;
@@ -5450,13 +5285,13 @@ const Admin = {
         listDiv.innerHTML = `
             <div class="sticky-header">
                 <div>
-                    <h3>${App.textLabel('editorPageTitle', '📚 教材與題庫編輯')}</h3>
-                    <div class="editor-helper" style="margin-top:6px;">${App.textLabel('editorPageHelp', '編輯科目、教材與題庫，或拖拉科目卡片調整順序後，記得按下儲存變更才會生效。')}</div>
+                    <h3>📚 教材與題庫編輯</h3>
+                    <div class="editor-helper" style="margin-top:6px;">編輯科目、教材與題庫，或拖拉科目卡片調整順序後，記得按下儲存變更才會生效。</div>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-template btn-sm" onclick="Admin.downloadTemplate()"><span class="btn-icon-mono">⇩</span> ${App.textLabel('downloadTemplateButtonText', '下載範本')}</button>
-                    <button class="btn btn-primary btn-sm" onclick="Admin.addCourse()">➕ ${App.textLabel('addCourseButtonText', '新增科目')}</button>
-                    <button class="btn btn-success btn-sm" onclick="Admin.saveAll(event)">💾 ${App.textLabel('saveChangesButtonText', '儲存變更')}</button>
+                    <button class="btn btn-template btn-sm" onclick="Admin.downloadTemplate()"><span class="btn-icon-mono">⇩</span> 下載範本</button>
+                    <button class="btn btn-primary btn-sm" onclick="Admin.addCourse()">➕ 新增科目</button>
+                    <button class="btn btn-success btn-sm" onclick="Admin.saveAll(event)">💾 儲存變更</button>
                 </div>
             </div>
             <div id="editorList"></div>`;
@@ -5472,20 +5307,20 @@ const Admin = {
                 <div class="course-content">
                     <div class="editor-card course-editor-main-card">
                         <div class="course-setting-inline-title">
-                            <h4>${App.textLabel('courseSettingTitle', '科目設定與教材')}</h4>
-                            <div class="course-material-status ${(Admin.getCourseMaterials(c).length || c.embedUrl) ? 'has-link' : ''}">${(Admin.getCourseMaterials(c).length || c.embedUrl) ? App.textLabel('materialConfiguredText', '● 已設定 {count} 個教材').replace('{count}', Admin.getCourseMaterials(c).length || 1) : App.textLabel('materialUnsetText', '尚未設定教材')}</div>
+                            <h4>科目設定與教材</h4>
+                            <div class="course-material-status ${(Admin.getCourseMaterials(c).length || c.embedUrl) ? 'has-link' : ''}">${(Admin.getCourseMaterials(c).length || c.embedUrl) ? `● 已設定 ${Admin.getCourseMaterials(c).length || 1} 個教材` : '尚未設定教材'}</div>
                         </div>
                         <div class="course-compact-row">
                             <div>
-                                <label>${App.textLabel('courseTitleLabel', '科目名稱')}</label>
-                                <input type="text" class="input-field c-title" value="${Admin.esc(c.title || '')}" placeholder="${Admin.esc(App.textLabel('courseTitlePlaceholder', '請輸入科目名稱'))}">
+                                <label>科目名稱</label>
+                                <input type="text" class="input-field c-title" value="${Admin.esc(c.title || '')}" placeholder="請輸入科目名稱">
                             </div>
                             <div>
-                                <label>${App.textLabel('passScoreLabel', '及格分數')}</label>
-                                <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" min="0" max="100" class="input-field c-pass-score no-spinner" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="${Admin.esc(App.textLabel('passScorePlaceholder', '及格分數'))}">
+                                <label>及格分數</label>
+                                <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" min="0" max="100" class="input-field c-pass-score no-spinner" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="及格分數">
                             </div>
                             <div class="material-field">
-                                <label>${App.textLabel('materialUrlLabel', '教材清單／教材網址')}</label>
+                                <label>教材清單／教材網址</label>
                                 ${Admin.renderMaterialRows(c, ci)}
                             </div>
                         </div>
@@ -5493,14 +5328,14 @@ const Admin = {
                         ${Admin.renderQuestionGroupManager(c, ci)}
                         <div class="question-toolbar">
                             <div>
-                                <h4>${App.textLabel('questionSectionTitle', '題庫內容')}</h4>
-                                <div class="editor-helper">${App.textLabel('questionSectionHelp', '可手動新增題目，或用 CSV 匯入／匯出題庫；按「選項」可展開編輯。')}</div>
+                                <h4>題庫內容</h4>
+                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；按「選項」可展開編輯。</div>
                             </div>
                             <div class="question-actions">
-                                <button class="btn btn-question-export btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 ${App.textLabel('questionExportButtonText', '匯出題庫')}</button>
-                                <button class="btn btn-question-import btn-sm" onclick="document.getElementById('f-csv-${ci}').click()">📥 ${App.textLabel('questionImportButtonText', '匯入題庫')}</button>
+                                <button class="btn btn-question-export btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
+                                <button class="btn btn-question-import btn-sm" onclick="document.getElementById('f-csv-${ci}').click()">📥 匯入題庫</button>
                                 <input type="file" id="f-csv-${ci}" class="hidden" accept=".csv" onchange="Admin.impCSV(event, ${ci})">
-                                <button class="btn btn-danger btn-sm" onclick="Admin.delAllQ(${ci})">${App.textLabel('questionDeleteAllButtonText', '刪除所有題目')}</button>
+                                <button class="btn btn-danger btn-sm" onclick="Admin.delAllQ(${ci})">刪除所有題目</button>
                             </div>
                         </div>
                         <div class="ql-container" id="ql-${ci}">${c.questions.map((q, qi) => `
@@ -5513,42 +5348,42 @@ const Admin = {
                                             <option value="truefalse" ${(q.type || 'choice') === 'truefalse' ? 'selected' : ''}>是非題</option>
                                             <option value="short" ${(q.type || 'choice') === 'short' ? 'selected' : ''}>簡答題</option>
                                         </select>
-                                        <span class="q-score-field-wrap no-spinner">配分 <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" class="q-score-field q-score no-spinner" value="${q.points === null || q.points === undefined || q.points === '' ? '' : Number(q.points)}" placeholder="${Admin.esc(App.textLabel('questionAutoPointsPlaceholder', '自動'))}" title="可留空，由系統計算"></span>
-                                        <button type="button" class="btn btn-sm q-toggle-options" title="展開或收合選項" aria-label="展開或收合選項" aria-expanded="false" onclick="Admin.toggleQOptions(this)">▸ ${App.textLabel('questionOptionsToggleText', '選項')}</button>
+                                        <span class="q-score-field-wrap no-spinner">配分 <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" class="q-score-field q-score no-spinner" value="${q.points === null || q.points === undefined || q.points === '' ? '' : Number(q.points)}" placeholder="自動" title="可留空，由系統計算"></span>
+                                        <button type="button" class="btn btn-sm q-toggle-options" title="展開或收合選項" aria-label="展開或收合選項" aria-expanded="false" onclick="Admin.toggleQOptions(this)">▸ 選項</button>
                                         <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===0?'disabled':''} title="上移一題" aria-label="上移一題" onclick="Admin.moveQ(${ci}, ${qi}, -1)">▲</button>
                                         <button type="button" class="btn btn-outline btn-sm q-move-btn" ${qi===c.questions.length-1?'disabled':''} title="下移一題" aria-label="下移一題" onclick="Admin.moveQ(${ci}, ${qi}, 1)">▼</button>
                                         <button class="btn btn-danger btn-sm" onclick="Admin.delQ(${ci}, ${qi})">移除</button>
                                     </div>
                                 </div>
-                                <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="${Admin.esc(App.textLabel('questionTextPlaceholder', '請輸入題目內容'))}">
+                                <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
                                 <input type="hidden" class="q-img-data" value="${Admin.esc(q.imageData || '')}">
                                 <div class="q-image-tools q-image-source-tools">
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.q-img-file').click()">${App.textLabel('questionImageUploadButtonText', '上傳參考圖片')}</button>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.q-img-file').click()">上傳參考圖片</button>
                                     <input type="file" class="q-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionImage(this)">
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.toggleQuestionGroupPicker(this)">${App.textLabel('questionUseGroupImageButtonText', '使用題組圖片')}</button>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.toggleQuestionGroupPicker(this)">使用題組圖片</button>
                                     <select class="select-field q-group-id q-group-picker ${q.imageGroupId ? '' : 'hidden'}" onchange="Admin.updateQuestionImageSource(this)">
-                                        <option value="">不${App.textLabel('questionUseGroupImageButtonText', '使用題組圖片')}</option>
+                                        <option value="">不使用題組圖片</option>
                                         ${Admin.getQuestionGroups(c).map(g => `<option value="${Admin.esc(g.id)}" ${String(q.imageGroupId || '') === String(g.id) ? 'selected' : ''}>${Admin.esc(g.title || '題組圖片')}</option>`).join('')}
                                     </select>
-                                    <button type="button" class="btn btn-danger btn-sm ${q.imageData ? '' : 'hidden'} q-img-remove" onclick="Admin.removeQuestionImage(this)">${App.textLabel('questionRemoveImageButtonText', '移除圖片')}</button>
+                                    <button type="button" class="btn btn-danger btn-sm ${q.imageData ? '' : 'hidden'} q-img-remove" onclick="Admin.removeQuestionImage(this)">移除圖片</button>
                                 </div>
                                 <div class="q-image-preview ${q.imageData ? 'has-image' : ''}">${q.imageData ? `<img src="${Admin.esc(q.imageData)}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)">` : ''}</div>
                                 <div class="q-reference-answer-wrap">
-                                    <label class="q-reference-answer-label">${App.textLabel('questionReferenceAnswerLabel', '簡答題參考答案')}</label>
-                                    <textarea class="q-reference-answer" placeholder="${Admin.esc(App.textLabel('questionReferenceAnswerPlaceholder', '可輸入批改用參考答案，學生作答時不會顯示'))}">${Admin.esc(q.referenceAnswer || q.correctAnswerText || '')}</textarea>
+                                    <label class="q-reference-answer-label">簡答題參考答案</label>
+                                    <textarea class="q-reference-answer" placeholder="可輸入批改用參考答案，學生作答時不會顯示">${Admin.esc(q.referenceAnswer || q.correctAnswerText || '')}</textarea>
                                 </div>
 
                                 <div class="q-options-grid" hidden style="${(q.type || 'choice') === 'truefalse' ? '' : 'display:none !important;'}">
-                                    ${((q.type || 'choice') === 'truefalse' ? ['是', '非'] : (Array.isArray(q.o) ? q.o : ["","","",""])).map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> ${App.textLabel('questionAnswerLabel', '答案')}</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}" ${(q.type || 'choice') === 'truefalse' ? 'readonly' : ''}></div>`).join('')}
+                                    ${((q.type || 'choice') === 'truefalse' ? ['是', '非'] : (Array.isArray(q.o) ? q.o : ["","","",""])).map((opt, oi) => `<div class="option-row"><span class="option-index">${oi+1}</span><label class="answer-radio-wrap" title="設為答案"><input type="radio" name="r-${c.id}-${qi}" value="${oi}" ${q.a==oi?'checked':''}> 答案</label><input type="text" class="input-field q-o" value="${Admin.esc(opt)}" ${(q.type || 'choice') === 'truefalse' ? 'readonly' : ''}></div>`).join('')}
                                 </div>
                             </div>`).join('')}
                         </div>
                         <div class="question-bottom-actions">
-                            <button class="btn btn-primary btn-sm" onclick="Admin.addQ(${ci})">${App.textLabel('questionManualAddButtonText', '手動加題')}</button>
+                            <button class="btn btn-primary btn-sm" onclick="Admin.addQ(${ci})">手動加題</button>
                         </div>
                     </div>
                 </div>
-            </div>`).join('') : '<div class="editor-empty-state">${App.textLabel('courseEmptyStateText', '目前尚無科目，請先點選右上方「新增科目」。')}</div>';
+            </div>`).join('') : '<div class="editor-empty-state">目前尚無科目，請先點選右上方「新增科目」。</div>';
 
         App.state.courses.forEach((c, ci) => { 
             new Sortable(document.getElementById(`ql-${ci}`), {
@@ -5597,7 +5432,7 @@ const Admin = {
             }); 
         });
     
-        // 新增題目定位：${App.textLabel('questionManualAddButtonText', '手動加題')}後自動捲動到新題目並聚焦
+        // 新增題目定位：手動加題後自動捲動到新題目並聚焦
         if (App.pendingScrollQuestion) {
             const targetList = document.getElementById(`ql-${App.pendingScrollQuestion.courseIndex}`);
             const targetRow = targetList ? targetList.querySelectorAll('.q-row')[App.pendingScrollQuestion.questionIndex] : null;
@@ -5814,7 +5649,7 @@ const Admin = {
             }
             if (toggle) {
                 toggle.setAttribute('aria-expanded', 'false');
-                toggle.innerText = '▸ ${App.textLabel('questionOptionsToggleText', '選項')}';
+                toggle.innerText = '▸ 選項';
             }
         } else if (isTrueFalse) {
             row.classList.remove('q-options-collapsed');
@@ -5848,7 +5683,7 @@ const Admin = {
             }
             if (toggle) {
                 toggle.setAttribute('aria-expanded', 'false');
-                toggle.innerText = '▸ ${App.textLabel('questionOptionsToggleText', '選項')}';
+                toggle.innerText = '▸ 選項';
             }
         }
         Backend.setStatus('題型已更新，請按「儲存變更」寫入 Supabase', 'var(--warning-color)');
@@ -5891,7 +5726,7 @@ const Admin = {
         }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         Admin.renderEditor();
-        alert(ok ? "✅ 已${App.textLabel('questionDeleteAllButtonText', '刪除所有題目')}並寫入 Supabase" : "⚠️ 已${App.textLabel('questionDeleteAllButtonText', '刪除所有題目')}，但 Supabase 寫入失敗");
+        alert(ok ? "✅ 已刪除所有題目並寫入 Supabase" : "⚠️ 已刪除所有題目，但 Supabase 寫入失敗");
     },
     
     courseDragStart: function(event, index) {
@@ -6143,7 +5978,7 @@ const Admin = {
             btn.innerText = ok ? '✅ 已寫入' : '⚠️ 寫入失敗';
             setTimeout(() => {
                 btn.disabled = false;
-                btn.innerText = oldText || '💾 ${App.textLabel('saveChangesButtonText', '儲存變更')}';
+                btn.innerText = oldText || '💾 儲存變更';
             }, 900);
         }
 
@@ -6165,34 +6000,34 @@ const Admin = {
             const safeU = encodeURIComponent(u);
             const recordCount = App.state.records.filter(r => r.u === u).length;
             const employeeId = App.getUserEmployeeId(u);
-            const employeeText = employeeId ? employeeId : '${App.textLabel('accountNotRegisteredText', '未登錄')}';
+            const employeeText = employeeId ? employeeId : '未登錄';
             return `
             <div class="account-card" data-account-user="${Admin.esc((String(u) + ' ' + String(employeeText)).toLowerCase())}">
                 <input type="checkbox" class="row-check account-select" value="${safeU}" aria-label="選取 ${Admin.esc(u)}">
                 <div class="account-summary-line">
                     <span class="account-name"><span class="account-order">${idx + 1}</span>. ${Admin.esc(u)}</span>
-                    <span class="account-meta-inline account-employee">${App.textLabel('accountEmployeeLabel', '員工編號：')}${Admin.esc(employeeText)}</span>
-                    <span class="account-meta-inline">${App.textLabel('accountRecordLabel', '成績紀錄：')}${recordCount} ${App.textLabel('accountRecordUnit', '筆')}</span>
+                    <span class="account-meta-inline account-employee">員工編號：${Admin.esc(employeeText)}</span>
+                    <span class="account-meta-inline">成績紀錄：${recordCount} 筆</span>
                 </div>
 
             </div>`;
-        }).join('') : '<div style="background:#1c2128; border:1px dashed var(--border-color); padding:25px; border-radius:10px; text-align:center; color:#8b949e;">${App.textLabel('accountEmptyText', '目前尚無帳號資料')}</div>';
+        }).join('') : '<div style="background:#1c2128; border:1px dashed var(--border-color); padding:25px; border-radius:10px; text-align:center; color:#8b949e;">目前尚無帳號資料</div>';
 
         document.getElementById('userTable').innerHTML = `
             <div class="sticky-header">
-                <h3>${App.textLabel('accountPageTitle', '🔒 人員帳號管理')}</h3>
-                <button class="btn btn-warning btn-sm" onclick="Admin.changeAdminPassword()">🔐 ${App.textLabel('accountChangeAdminPasswordText', '修改管理員密碼')}</button>
+                <h3>🔒 人員帳號管理</h3>
+                <button class="btn btn-warning btn-sm" onclick="Admin.changeAdminPassword()">🔐 修改管理員密碼</button>
             </div>
             <div class="account-toolbar account-toolbar-compact" style="align-items:center;">
                 <div class="account-search-box">
-                    <input type="text" id="accountSearchInput" class="input-field" style="margin:0" placeholder="${Admin.esc(App.textLabel('scoreSearchPlaceholder', '搜尋代字／員工編號...'))}" oninput="Admin.applyUserFilter()">
-                    <span id="accountCountText" class="hidden">${App.textLabel('accountCountTemplate', '共 {count} 組代字').replace('{count}', users.length)}</span>
+                    <input type="text" id="accountSearchInput" class="input-field" style="margin:0" placeholder="搜尋代字／員工編號..." oninput="Admin.applyUserFilter()">
+                    <span id="accountCountText" class="hidden">共 ${users.length} 組代字</span>
                 </div>
                 <div class="batch-actions" style="margin-left:auto; padding-bottom:2px;">
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e; white-space:nowrap;">
-                        <input type="checkbox" class="row-check" id="selectVisibleAccounts" onchange="Admin.toggleVisibleUsers(this.checked)"> ${App.textLabel('accountSelectVisibleText', '選取目前顯示帳號')}
+                        <input type="checkbox" class="row-check" id="selectVisibleAccounts" onchange="Admin.toggleVisibleUsers(this.checked)"> 選取目前顯示帳號
                     </label>
-                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteUsers()">${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}</button>
+                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteUsers()">刪除帳號</button>
                 </div>
             </div>
             <div id="accountListArea">${listHtml}</div>
@@ -6218,9 +6053,9 @@ const Admin = {
         const empty = document.getElementById('accountSearchEmpty');
         if (empty) empty.remove();
         if (cards.length && visibleCount === 0) {
-            document.getElementById('accountListArea').insertAdjacentHTML('beforeend', '<div id="accountSearchEmpty" style="background:#1c2128; border:1px dashed var(--border-color); padding:25px; border-radius:10px; text-align:center; color:#8b949e;">${App.textLabel('accountSearchEmptyText', '查無符合的代字')}</div>');
+            document.getElementById('accountListArea').insertAdjacentHTML('beforeend', '<div id="accountSearchEmpty" style="background:#1c2128; border:1px dashed var(--border-color); padding:25px; border-radius:10px; text-align:center; color:#8b949e;">查無符合的代字</div>');
         }
-        countText.innerText = keyword ? App.textLabel('accountFilterCountTemplate', '符合 {visible} 組／共 {total} 組代字').replace('{visible}', visibleCount).replace('{total}', cards.length) : App.textLabel('accountCountTemplate', '共 {count} 組代字').replace('{count}', cards.length);
+        countText.innerText = keyword ? `符合 ${visibleCount} 組／共 ${cards.length} 組代字` : `共 ${cards.length} 組代字`;
         const selectAll = document.getElementById('selectVisibleAccounts');
         if (selectAll) selectAll.checked = false;
     },
@@ -6238,14 +6073,14 @@ const Admin = {
         if (!confirm(`確定批次刪除 ${selected.length} 個登入帳號？既有測驗紀錄將會保留。`)) return;
 
         const ok = await Admin.withButtonStatus(async () => {
-            return await App.deleteUsersOnly(selected, '批次${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}已寫入 Supabase', '批次${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}寫入 Supabase 失敗，資料庫未變更');
+            return await App.deleteUsersOnly(selected, '批次刪除帳號已寫入 Supabase', '批次刪除帳號寫入 Supabase 失敗，資料庫未變更');
         }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
         if (ok) {
             Admin.renderUsers();
-            alert('✅ 已批次${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}並寫入 Supabase');
+            alert('✅ 已批次刪除帳號並寫入 Supabase');
         } else {
-            alert('⚠️ 批次${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}寫入 Supabase 失敗，資料庫未變更');
+            alert('⚠️ 批次刪除帳號寫入 Supabase 失敗，資料庫未變更');
         }
     },
     
@@ -6271,12 +6106,12 @@ const Admin = {
         const u = decodeURIComponent(encodedU);
         if (confirm(`確定刪除「${u}」的登入帳號？既有測驗紀錄將會保留。`)) {
             const ok = await Admin.withButtonStatus(async () => {
-                return await App.deleteUsersOnly([u], '${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}已寫入 Supabase', '${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}寫入 Supabase 失敗，資料庫未變更');
+                return await App.deleteUsersOnly([u], '刪除帳號已寫入 Supabase', '刪除帳號寫入 Supabase 失敗，資料庫未變更');
             }, { syncingText: '寫入中...', successText: '✅ 已寫入', failText: '⚠️ 寫入失敗' });
 
             if (ok) {
                 Admin.renderUsers();
-                alert('✅ 已${App.textLabel('accountBatchDeleteButtonText', '刪除帳號')}並寫入 Supabase');
+                alert('✅ 已刪除帳號並寫入 Supabase');
             } else {
                 alert('⚠️ 帳號刪除寫入 Supabase 失敗，雲端資料未變更');
             }
@@ -6286,7 +6121,7 @@ const Admin = {
     
     batchUnlockSelected: async function() {
         const checked = Array.from(document.querySelectorAll('#scoreTableArea .score-select:checked'));
-        if (!checked.length) return alert('請先勾選要${App.textLabel('scoreUnlockButtonText', '解鎖測驗')}的紀錄。');
+        if (!checked.length) return alert('請先勾選要解鎖測驗的紀錄。');
 
         const items = [];
         const seen = {};
@@ -6305,7 +6140,7 @@ const Admin = {
         });
 
         if (!items.length) return alert('所選紀錄缺少學員或科目資訊，無法批次解鎖。');
-        if (!confirm(`確定解鎖 ${items.length} ${App.textLabel('accountRecordUnit', '筆')}測驗？解鎖後學員可重新測驗。`)) return;
+        if (!confirm(`確定解鎖 ${items.length} 筆測驗？解鎖後學員可重新測驗。`)) return;
 
         const ok = await Admin.withButtonStatus(async () => {
             return await App.batchUnlockQuiz(items);
@@ -6347,7 +6182,7 @@ const Admin = {
             items.push({ userCode, courseId, courseTitle });
         });
         if (!items.length) return alert('所選紀錄缺少學員或科目資訊，無法重新鎖回。');
-        if (!confirm(`確定重新鎖回 ${items.length} ${App.textLabel('accountRecordUnit', '筆')}測驗？鎖回後學員不可重新測驗。`)) return;
+        if (!confirm(`確定重新鎖回 ${items.length} 筆測驗？鎖回後學員不可重新測驗。`)) return;
         const ok = await Admin.withButtonStatus(async () => {
             return await App.batchRelockQuiz(items);
         }, { syncingText: '寫入中...', successText: '已寫入', failText: '寫入失敗' });
@@ -6489,7 +6324,7 @@ const Admin = {
                     }
                 });
                 if (!records.length) throw new Error('沒有可匯入的資料。可能是科目名稱無法對應，或同一代字／科目已有成績。');
-                const msg = `準備匯入 ${records.length} ${App.textLabel('accountRecordUnit', '筆')}舊成績。${skipped.length ? `\n略過 ${skipped.length} 列：第 ${skipped.slice(0, 10).join(', ')}${skipped.length > 10 ? '…' : ''} 列。` : ''}\n\n匯入後會重新鎖定相同代字與科目，確定繼續？`;
+                const msg = `準備匯入 ${records.length} 筆舊成績。${skipped.length ? `\n略過 ${skipped.length} 列：第 ${skipped.slice(0, 10).join(', ')}${skipped.length > 10 ? '…' : ''} 列。` : ''}\n\n匯入後會重新鎖定相同代字與科目，確定繼續？`;
                 if (!confirm(msg)) return;
                 const ok = await Admin.withButtonStatus(async () => {
                     const result = await Backend.importScoreRecords(records, relocks);
@@ -6501,7 +6336,7 @@ const Admin = {
                     await Backend.loadState();
                     Admin.renderScores();
                     App.updateLoginStatus();
-                    alert(`已匯入 ${records.length} ${App.textLabel('accountRecordUnit', '筆')}舊成績。${skipped.length ? `略過 ${skipped.length} 列。` : ''}`);
+                    alert(`已匯入 ${records.length} 筆舊成績。${skipped.length ? `略過 ${skipped.length} 列。` : ''}`);
                 } else {
                     alert('舊成績匯入失敗，請確認 Supabase 連線與 CSV 欄位。');
                 }
@@ -6666,7 +6501,7 @@ const Admin = {
             .filter(n => Number.isInteger(n));
         const uniqueIndices = Array.from(new Set(indices)).sort((a,b) => b - a);
         if (!uniqueIndices.length) return alert('請先勾選要刪除的測驗紀錄。');
-        if (!confirm(`確定批次刪除 ${uniqueIndices.length} ${App.textLabel('accountRecordUnit', '筆')}測驗紀錄？`)) return;
+        if (!confirm(`確定批次刪除 ${uniqueIndices.length} 筆測驗紀錄？`)) return;
         const recordIds = uniqueIndices.map(idx => App.state.records[idx]).filter(Boolean).map(r => String(r.recordId || r.id || '')).filter(Boolean);
         if (!recordIds.length) return alert('所選紀錄缺少 recordId，無法安全同步刪除。');
 
@@ -6799,21 +6634,21 @@ const Admin = {
         const panel = document.getElementById('panel-score');
         panel.innerHTML = `
             <div class="sticky-header">
-                <h3>${App.textLabel('scorePageTitle', '🔍 測驗成績查詢')}</h3>
+                <h3>🔍 測驗成績查詢</h3>
                 <div class="header-actions">
-                    <button class="btn btn-success btn-sm" onclick="Admin.exportScoreRecords()">📤 ${App.textLabel('scoreExportButtonText', '匯出成績')}</button>
-                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('legacyScoreImportFile').click()">📥 ${App.textLabel('scoreImportLegacyButtonText', '匯入舊成績')}</button>
+                    <button class="btn btn-success btn-sm" onclick="Admin.exportScoreRecords()">📤 匯出成績</button>
+                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('legacyScoreImportFile').click()">📥 匯入舊成績</button>
                     <input type="file" id="legacyScoreImportFile" class="hidden" accept=".csv" onchange="Admin.importLegacyScores(event)">
-                    <button class="btn btn-answer-export btn-sm" onclick="Admin.exportAnswerDetails()">${App.textLabel('scoreExportAnswerButtonText', '匯出逐題紀錄')}</button>
+                    <button class="btn btn-answer-export btn-sm" onclick="Admin.exportAnswerDetails()">匯出逐題紀錄</button>
                 </div>
             </div>
             <div class="filter-group score-filter-compact">
                 <div class="filter-item">
-                    <input type="text" id="searchUser" class="input-field" style="margin:0" placeholder="${Admin.esc(App.textLabel('scoreSearchPlaceholder', '搜尋代字／員工編號...'))}" oninput="Admin.applyScoreFilter()">
+                    <input type="text" id="searchUser" class="input-field" style="margin:0" placeholder="搜尋代字／員工編號..." oninput="Admin.applyScoreFilter()">
                 </div>
                 <div class="filter-item">
                     <select id="searchCourse" class="select-field" style="margin:0" onchange="Admin.applyScoreFilter()">
-                        <option value="ALL">${App.textLabel('scoreAllCoursesOptionText', '所有科目')}</option>
+                        <option value="ALL">所有科目</option>
                         ${App.state.courses.map(c => `<option value="${c.title}">${c.title}</option>`).join('')}
                     </select>
                 </div>
@@ -6829,16 +6664,16 @@ const Admin = {
             <div class="batch-toolbar score-toolbar-swapped">
                 <div class="batch-actions">
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#8b949e; white-space:nowrap;">
-                        <input type="checkbox" class="row-check" id="selectVisibleScores" onchange="Admin.toggleVisibleScoreRecords(this.checked)"> ${App.textLabel('scoreSelectVisibleText', '選取目前顯示紀錄')}
+                        <input type="checkbox" class="row-check" id="selectVisibleScores" onchange="Admin.toggleVisibleScoreRecords(this.checked)"> 選取目前顯示紀錄
                     </label>
-                    <button class="btn btn-warning btn-sm" onclick="Admin.batchUnlockSelected()">${App.textLabel('scoreUnlockButtonText', '解鎖測驗')}</button>
-                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteScoreRecords()">${App.textLabel('scoreDeleteButtonText', '刪除紀錄')}</button>
+                    <button class="btn btn-warning btn-sm" onclick="Admin.batchUnlockSelected()">解鎖測驗</button>
+                    <button class="btn btn-danger btn-sm" onclick="Admin.batchDeleteScoreRecords()">刪除紀錄</button>
                 </div>
-                <div class="score-count-note" style="font-size:13px; color:#8b949e;">${App.textLabel('scoreCountNoteTemplate', '目前顯示 {count} ${App.textLabel('accountRecordUnit', '筆')}測驗紀錄｜匯出將依目前篩選結果產生檔案').replace('{count}', filtered.length)}</div>
+                <div class="score-count-note" style="font-size:13px; color:#8b949e;">目前顯示 ${filtered.length} 筆測驗紀錄｜匯出將依目前篩選結果產生檔案</div>
             </div>
             <table>
                 <thead>
-                    <tr><th style="width:42px; text-align:center; white-space:nowrap;">${App.textLabel('scoreHeaderSelect', '選取')}</th><th style="white-space:nowrap;">${App.textLabel('scoreHeaderUser', '代字')}</th><th style="white-space:nowrap;">${App.textLabel('scoreHeaderEmployeeId', '員工編號')}</th><th style="white-space:nowrap;">${App.textLabel('scoreHeaderCourse', '測驗科目')}</th><th style="white-space:nowrap;">${App.textLabel('scoreHeaderScore', '分數')}</th><th style="white-space:nowrap;">${App.textLabel('scoreHeaderPassStatus', '及格狀態')}</th><th style="white-space:nowrap;">${App.textLabel('scoreHeaderDate', '考核日期')}</th><th style="white-space:nowrap;">${App.textLabel('scoreHeaderQuizStatus', '測驗狀態')}</th><th style="white-space:nowrap;">${App.textLabel('scoreHeaderAction', '操作')}</th></tr>
+                    <tr><th style="width:42px; text-align:center; white-space:nowrap;">選取</th><th style="white-space:nowrap;">代字</th><th style="white-space:nowrap;">員工編號</th><th style="white-space:nowrap;">測驗科目</th><th style="white-space:nowrap;">分數</th><th style="white-space:nowrap;">及格狀態</th><th style="white-space:nowrap;">考核日期</th><th style="white-space:nowrap;">測驗狀態</th><th style="white-space:nowrap;">操作</th></tr>
                 </thead>
                 <tbody>
                     ${filtered.map(item => {
@@ -6849,7 +6684,7 @@ const Admin = {
                         const passScore = Number(r.passScore || (course ? App.getPassScore(course) : 70));
                         const hasShortAnswer = Array.isArray(r.answerDetails) && r.answerDetails.some(ans => ans && (ans.questionType === 'short' || ans.needsManualScore || ans.manualScore !== undefined));
                         const manualFinalized = !!r.manualScoreFinalized;
-                        const manualScoreBtnText = manualFinalized ? App.textLabel('scoreManualDoneText', '已計分') : App.textLabel('scoreManualPendingText', '待計分');
+                        const manualScoreBtnText = manualFinalized ? '已計分' : '待計分';
                         const manualScoreBtnTitle = manualFinalized ? '此筆已完成人工計分，點擊後可確認是否修改' : '為簡答題進行人工計分';
                         const safeUser = String(r.u).replace(/'/g, "\'");
                         return `
@@ -6864,12 +6699,12 @@ const Admin = {
                             <td>${locked ? '<span style="color:var(--warning-color); font-weight:bold;">已鎖定</span>' : '<span style="color:var(--success-color); font-weight:bold;">可測驗</span>'}</td>
                             <td>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                    ${hasShortAnswer ? `<button class="btn ${manualFinalized ? 'btn-success' : 'btn-primary'} btn-sm" title="${manualScoreBtnTitle}" onclick="Admin.editFinalScore(${item.idx})">${manualScoreBtnText}</button>` : `<button class="btn btn-outline btn-sm btn-pending-score-disabled" disabled title="${Admin.esc(App.textLabel('scoreManualNoShortTitle', '此筆沒有簡答題，不需人工計分'))}">待計分</button>`}
+                                    ${hasShortAnswer ? `<button class="btn ${manualFinalized ? 'btn-success' : 'btn-primary'} btn-sm" title="${manualScoreBtnTitle}" onclick="Admin.editFinalScore(${item.idx})">${manualScoreBtnText}</button>` : `<button class="btn btn-outline btn-sm btn-pending-score-disabled" disabled title="此筆沒有簡答題，不需人工計分">待計分</button>`}
                                 </div>
                             </td>
                         </tr>`;
                     }).join('')}
-                    ${filtered.length === 0 ? '<tr><td colspan="9" style="text-align:center; color:#8b949e">${App.textLabel('scoreNoRecordText', '無符合條件的成績紀錄')}</td></tr>' : ''}
+                    ${filtered.length === 0 ? '<tr><td colspan="9" style="text-align:center; color:#8b949e">無符合條件的成績紀錄</td></tr>' : ''}
                 </tbody>
             </table>
         `;
@@ -6906,13 +6741,13 @@ const Quiz = {
         if (quizStatus) { quizStatus.dataset.dynamicStatus = 'default'; quizStatus.innerText = App.getSystemSetting('quizCompletionText') || '送出時會檢查未作答題目。'; quizStatus.style.color = '#8b949e'; }
         const submitBtn = document.getElementById('quizSubmitBtn');
         if (submitBtn) submitBtn.innerText = App.buttonLabel('quizSubmitButtonText', 'quizSubmitButtonEmoji', App.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonText, App.DEFAULT_SYSTEM_SETTINGS.quizSubmitButtonEmoji);
-        if (!App.isInstructor && App.isQuizLocked(App.user, App.activeCourse.id)) { resetStartButton(); return alert(App.textLabel('quizLockedAlert', '本科目已完成測驗，需由管理員於「測驗成績查詢」解鎖後才能再次測驗。')); }
-        if(!App.activeCourse.questions.length) { resetStartButton(); return alert(App.textLabel('quizNoQuestionsAlert', '本科目尚無考題。')); }
+        if (!App.isInstructor && App.isQuizLocked(App.user, App.activeCourse.id)) { resetStartButton(); return alert("本科目已完成測驗，需由管理員於「測驗成績查詢」解鎖後才能再次測驗。"); }
+        if(!App.activeCourse.questions.length) { resetStartButton(); return alert("本科目尚無考題。"); }
         if (!App.isInstructor) {
             const currentEmployeeId = App.getUserEmployeeId(App.user);
-            const input = prompt("請輸入${App.textLabel('accountEmployeeLabel', '員工編號：')}", currentEmployeeId || "");
+            const input = prompt("請輸入員工編號：", currentEmployeeId || "");
             const employeeIdInput = String(input === null ? '' : input).trim();
-            if (!employeeIdInput) { resetStartButton(); return alert(App.textLabel('employeeRequiredAlert', '請輸入員工編號後再進入考核。')); }
+            if (!employeeIdInput) { resetStartButton(); return alert("請輸入員工編號後再進入考核。"); }
             this.setScoreSyncOverlay(true, '正在確認帳號與員工編號，完成後會自動進入測驗。', '測驗準備中', '請稍候，不要重複點擊開始考核。');
             App.employeeId = employeeIdInput; // 保留前導 0，不轉成數字。
             const account = App.getUserRecord(App.user) || { employeeId: '', name: '', pw: '' };
@@ -6932,7 +6767,7 @@ const Quiz = {
                 <p class="quiz-question-text"><strong>Q${i+1}：</strong> ${q.q}${qType === 'short' ? '<span class="manual-score-badge">簡答題｜人工計分</span>' : (qType === 'truefalse' ? '<span class="manual-score-badge">是非題</span>' : '')}${q.points === null || q.points === undefined || q.points === '' ? '' : `<span class="quiz-points-badge">配分 ${Number(q.points)} 分</span>`}<span class="unanswered-note hidden">未作答</span></p>
                 ${getQuestionDisplayImage(q, App.activeCourse) ? `<div class="quiz-question-image"><img src="${getQuestionDisplayImage(q, App.activeCourse)}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                 ${qType === 'short'
-                    ? `<textarea class="quiz-short-answer" placeholder="${Admin.esc(App.textLabel('quizShortAnswerPlaceholder', '請輸入簡答內容...'))}" oninput="Quiz.inputShort(${i}, this)"></textarea>`
+                    ? `<textarea class="quiz-short-answer" placeholder="請輸入簡答內容..." oninput="Quiz.inputShort(${i}, this)"></textarea>`
                     : `<div class="quiz-options-list">
                         ${(Array.isArray(q.o) ? q.o : []).map((opt, oi) => `<button class="btn btn-outline quiz-option-btn" onclick="Quiz.select(${i},${oi},this)"><span class="quiz-option-no">(${oi+1})</span><span class="quiz-option-text">${Quiz.formatOptionText(opt)}</span></button>`).join('')}
                     </div>`}
