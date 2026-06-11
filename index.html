@@ -2804,7 +2804,7 @@ body.question-sort-active .editor-helper {
                     </div>
                     <input type="file" id="backupImportFile" accept=".json,application/json" class="hidden" onchange="Backup.importLocal(this)">
                     <button id="adminSidebarHomeBtn" class="btn btn-outline btn-sm" style="width:100%; margin-bottom:10px;" onclick="App.toHome()">返回首頁</button>
-                    <div class="admin-tab" id="t-settings" onclick="App.switchAdmin('settings')" style="margin-top:0; border:1px solid var(--border-color); background:#0d1117;">🛠️ 系統設定<br><span style="font-size:11px;color:#8b949e;font-weight:400;">基本／進階／按鈕</span></div>
+                    <div class="admin-tab" id="t-settings" onclick="App.switchAdmin('settings')" style="margin-top:0; border:1px solid var(--border-color); background:#0d1117;">🛠️ 系統設定</div>
                 </div>
                 <div class="admin-content scroll-area" id="adminContent">
                     <div id="panel-rec" class="hidden"><div id="userTable"></div></div>
@@ -3534,9 +3534,26 @@ const App = {
         adminEditTabEmoji: '📚',
         adminSettingsTabText: '系統設定',
         adminSettingsTabEmoji: '🛠️',
-        adminSettingsTabSubText: '基本／進階／按鈕',
+        adminSettingsTabSubText: '',
         adminRecTabText: '人員帳號管理',
         adminRecTabEmoji: '🔒',
+        courseEditorIntroText: '編輯科目、教材與題庫，或拖拉科目卡片調整順序後，記得按下儲存變更才會生效。',
+        materialUrlPlaceholder: '可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼',
+        courseTitlePlaceholder: '請輸入科目名稱',
+        passScorePlaceholder: '及格分數',
+        questionBankHelperText: '可手動新增題目，或用 CSV 匯入／匯出題庫；按「選項」可展開編輯。',
+        questionGroupTitlePlaceholder: '題組名稱，例如：題組A／雷達圖',
+        questionContentPlaceholder: '請輸入題目內容',
+        referenceAnswerPlaceholder: '可輸入批改用參考答案，學生作答時不會顯示',
+        questionGroupSectionTitleText: '題組共用圖片',
+        questionGroupHelperText: '同一張參考圖可在此上傳一次，再讓多個題目選用，避免每題重複上傳。',
+        addQuestionGroupButtonText: '新增題組圖片',
+        uploadGroupImageButtonText: '上傳圖片',
+        deleteQuestionGroupButtonText: '刪除題組',
+        useGroupImageButtonText: '使用題組圖片',
+        noGroupImageOptionText: '不使用題組圖片',
+        addQuestionGroupStatusText: '已新增題組圖片，請上傳圖片後按「儲存變更」寫入 Supabase',
+        noQuestionGroupAlertText: '尚未新增題組圖片。請先在上方「題組共用圖片」新增並上傳圖片。',
         adminPasswordCancelButtonText: '取消',
         adminPasswordCancelButtonEmoji: '',
         adminPasswordSubmitButtonText: '登入後台',
@@ -4556,14 +4573,13 @@ const Admin = {
             </div>
             <div class="settings-grid">
                 <div class="settings-section-nav">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionBasic')">基本文字設定</button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionAdvanced')">進階版面設定</button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionButtons')">按鈕文字 / Emoji</button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionSidebarMenu')">左側選單文字 / 圖示</button>
-                    <span class="settings-section-title-note">點上方按鈕可直接跳到設定區塊</span>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionFrontend')">前台設定</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionBackend')">後台設定</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.scrollToSettingsSection('settingSectionSidebarMenu')">左側選單設定</button>
                 </div>
-                <div class="settings-card settings-card-highlight" id="settingSectionBasic">
-                    <h4>基本文字設定｜首頁與狀態顯示</h4>
+
+                <div class="settings-card settings-card-highlight" id="settingSectionFrontend">
+                    <h4>前台設定｜首頁、登入與整體外觀</h4>
                     <div class="settings-row">
                         <label>網站標題</label>
                         <input id="settingAppTitle" class="input-field" value="${Admin.esc(s.appTitle || '')}">
@@ -4576,54 +4592,8 @@ const Admin = {
                         <label>同步狀態提示</label>
                         <div>
                             <label class="settings-switch-row"><input type="checkbox" class="row-check" id="settingShowCloudStatus" ${checked}> 顯示 Supabase 同步狀態文字</label>
-                            <div class="settings-help">只控制是否顯示狀態文字，不會影響 Supabase 寫入功能。</div>
                         </div>
                     </div>
-                </div>
-                <div class="settings-card">
-                    <h4>測驗畫面文字</h4>
-                    <div class="settings-row">
-                        <label>測驗注意事項</label>
-                        <textarea id="settingQuizWarningText" class="input-field">${Admin.esc(s.quizWarningText || '')}</textarea>
-                    </div>
-                    <div class="settings-row">
-                        <label>作答檢查提示</label>
-                        <input id="settingQuizCompletionText" class="input-field" value="${Admin.esc(s.quizCompletionText || '')}">
-                    </div>
-                    <div class="settings-row">
-                        <label>送出按鈕文字</label>
-                        <input id="settingQuizSubmitButtonText" class="input-field" value="${Admin.esc(s.quizSubmitButtonText || '')}">
-                    </div>
-                    <div class="settings-row">
-                        <label>送出中按鈕文字</label>
-                        <input id="settingScoreSavingButtonText" class="input-field" value="${Admin.esc(s.scoreSavingButtonText || '')}">
-                    </div>
-                    <div class="settings-row">
-                        <label>結果頁返回按鈕</label>
-                        <input id="settingResultHomeButtonText" class="input-field" value="${Admin.esc(s.resultHomeButtonText || '')}">
-                    </div>
-                </div>
-                <div class="settings-card">
-                    <h4>人工計分與儲存提示</h4>
-                    <div class="settings-row">
-                        <label>已計分確認文字</label>
-                        <textarea id="settingManualScoreConfirmText" class="input-field">${Admin.esc(s.manualScoreConfirmText || '')}</textarea>
-                    </div>
-                    <div class="settings-row">
-                        <label>儲存遮罩標題</label>
-                        <input id="settingScoreSyncTitle" class="input-field" value="${Admin.esc(s.scoreSyncTitle || '')}">
-                    </div>
-                    <div class="settings-row">
-                        <label>儲存遮罩主文字</label>
-                        <textarea id="settingScoreSyncMessage" class="input-field">${Admin.esc(s.scoreSyncMessage || '')}</textarea>
-                    </div>
-                    <div class="settings-row">
-                        <label>儲存遮罩說明</label>
-                        <textarea id="settingScoreSyncNote" class="input-field">${Admin.esc(s.scoreSyncNote || '')}</textarea>
-                    </div>
-                </div>
-                <div class="settings-card settings-card-highlight" id="settingSectionAdvanced">
-                    <h4>進階版面設定｜外觀與首頁背景</h4>
                     <div class="settings-row">
                         <label>主色調</label>
                         <div>
@@ -4631,7 +4601,6 @@ const Admin = {
                                 <input type="color" id="settingAccentColor" value="${Admin.esc(s.accentColor || App.DEFAULT_SYSTEM_SETTINGS.accentColor)}" oninput="document.getElementById('settingAccentColorText').value=this.value">
                                 <input id="settingAccentColorText" class="input-field" value="${Admin.esc(s.accentColor || App.DEFAULT_SYSTEM_SETTINGS.accentColor)}" placeholder="#58a6ff">
                             </div>
-                            <div class="settings-help">會影響標題、主要按鈕、重點線條等系統主色。</div>
                         </div>
                     </div>
                     <div class="settings-row">
@@ -4678,12 +4647,77 @@ const Admin = {
                                 <input type="hidden" id="settingLoginBackgroundImage" value="${Admin.esc(s.loginBackgroundImage || '')}">
                             </div>
                             <div id="settingLoginBgPreview" class="settings-preview-box ${s.loginBackgroundImage ? 'has-image' : ''}">${s.loginBackgroundImage ? `<img src="${Admin.esc(s.loginBackgroundImage)}" alt="自訂背景圖" onclick="ImageLightbox.open(this.src)">` : '尚未上傳自訂背景圖'}</div>
-                            <div class="settings-help">背景圖片會壓縮後儲存。若圖片太大，建議使用較小尺寸圖片，避免整個 HTML / Supabase 資料變重。</div>
                         </div>
                     </div>
                 </div>
+
                 <div class="settings-card">
-                    <h4>進階版面設定｜後台與題庫編輯版面</h4>
+                    <h4>前台設定｜測驗與結果畫面文字</h4>
+                    <div class="settings-row">
+                        <label>測驗注意事項</label>
+                        <textarea id="settingQuizWarningText" class="input-field">${Admin.esc(s.quizWarningText || '')}</textarea>
+                    </div>
+                    <div class="settings-row">
+                        <label>作答檢查提示</label>
+                        <input id="settingQuizCompletionText" class="input-field" value="${Admin.esc(s.quizCompletionText || '')}">
+                    </div>
+                    <div class="settings-row">
+                        <label>送出按鈕文字</label>
+                        <input id="settingQuizSubmitButtonText" class="input-field" value="${Admin.esc(s.quizSubmitButtonText || '')}">
+                    </div>
+                    <div class="settings-row">
+                        <label>送出中按鈕文字</label>
+                        <input id="settingScoreSavingButtonText" class="input-field" value="${Admin.esc(s.scoreSavingButtonText || '')}">
+                    </div>
+                    <div class="settings-row">
+                        <label>結果頁返回按鈕</label>
+                        <input id="settingResultHomeButtonText" class="input-field" value="${Admin.esc(s.resultHomeButtonText || '')}">
+                    </div>
+                    <div class="settings-row">
+                        <label>儲存遮罩標題</label>
+                        <input id="settingScoreSyncTitle" class="input-field" value="${Admin.esc(s.scoreSyncTitle || '')}">
+                    </div>
+                    <div class="settings-row">
+                        <label>儲存遮罩主文字</label>
+                        <textarea id="settingScoreSyncMessage" class="input-field">${Admin.esc(s.scoreSyncMessage || '')}</textarea>
+                    </div>
+                    <div class="settings-row">
+                        <label>儲存遮罩說明</label>
+                        <textarea id="settingScoreSyncNote" class="input-field">${Admin.esc(s.scoreSyncNote || '')}</textarea>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h4>前台設定｜前台按鈕文字與 Emoji</h4>
+                    <div class="settings-row">
+                        <label>Emoji 顯示</label>
+                        <div>
+                            <label class="settings-switch-row"><input type="checkbox" class="row-check" id="settingShowButtonEmoji" ${s.showButtonEmoji === false ? '' : 'checked'}> 顯示按鈕 Emoji</label>
+                            <select id="settingButtonEmojiPosition" class="select-field" style="margin-top:8px;">
+                                <option value="prefix" ${s.buttonEmojiPosition === 'prefix' || !s.buttonEmojiPosition ? 'selected' : ''}>Emoji 在文字前</option>
+                                <option value="suffix" ${s.buttonEmojiPosition === 'suffix' ? 'selected' : ''}>Emoji 在文字後</option>
+                            </select>
+                        </div>
+                    </div>
+                    ${Admin.renderButtonSettingRow('首頁登入按鈕', 'LoginButton', s.loginButtonText, s.loginButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('已測驗複習按鈕', 'ReviewModeButton', s.reviewModeButtonText, s.reviewModeButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('管理員由後台進入提示', 'InstructorEnterButton', s.instructorEnterButtonText, s.instructorEnterButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('管理員登入按鈕', 'AdminLoginButton', s.adminLoginButtonText, s.adminLoginButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('管理員已授權按鈕', 'AdminAuthorizedButton', s.adminAuthorizedButtonText, s.adminAuthorizedButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('開始考核按鈕', 'StartQuizButton', s.startQuizButtonText, s.startQuizButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('準備考核中按鈕', 'StartPreparingButton', s.startPreparingButtonText, s.startPreparingButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('提交答案按鈕', 'QuizSubmitButton', s.quizSubmitButtonText, s.quizSubmitButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('成績儲存中按鈕', 'ScoreSavingButton', s.scoreSavingButtonText, s.scoreSavingButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('作答檢查返回按鈕', 'ReviewBackButton', s.reviewBackButtonText, s.reviewBackButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('作答檢查確認按鈕', 'ReviewConfirmButton', s.reviewConfirmButtonText, s.reviewConfirmButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('作答檢查儲存中按鈕', 'ReviewSavingButton', s.reviewSavingButtonText, s.reviewSavingButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('結果頁回首頁按鈕', 'ResultHomeButton', s.resultHomeButtonText, s.resultHomeButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('教材頁退出按鈕', 'ViewExitButton', s.viewExitButtonText, s.viewExitButtonEmoji)}
+                    ${Admin.renderButtonSettingRow('回到後台按鈕', 'BackToAdminButton', s.backToAdminButtonText, s.backToAdminButtonEmoji)}
+                </div>
+
+                <div class="settings-card settings-card-highlight" id="settingSectionBackend">
+                    <h4>後台設定｜後台與題庫編輯版面</h4>
                     <div class="settings-row">
                         <label>後台頂欄</label>
                         <select id="settingAdminHeaderMode" class="select-field">
@@ -4706,7 +4740,6 @@ const Admin = {
                             <option value="top" ${s.questionInputPosition === 'top' ? 'selected' : ''}>移到每題最上方</option>
                             <option value="bottom" ${s.questionInputPosition === 'bottom' ? 'selected' : ''}>移到圖片與參考答案下方</option>
                         </select>
-                        <div class="settings-help">這是安全版位置調整，不會改變題目資料，只改變後台編輯時的排列。</div>
                     </div>
                     <div class="settings-row">
                         <label>圖片按鈕排列</label>
@@ -4715,35 +4748,82 @@ const Admin = {
                             <option value="stack" ${s.imageToolsLayout === 'stack' ? 'selected' : ''}>上下排列</option>
                         </select>
                     </div>
-                </div>
-                <div class="settings-card settings-card-highlight" id="settingSectionButtons">
-                    <h4>按鈕設定｜按鈕文字與 Emoji</h4>
                     <div class="settings-row">
-                        <label>Emoji 顯示</label>
-                        <div>
-                            <label class="settings-switch-row"><input type="checkbox" class="row-check" id="settingShowButtonEmoji" ${s.showButtonEmoji === false ? '' : 'checked'}> 顯示按鈕 Emoji</label>
-                            <select id="settingButtonEmojiPosition" class="select-field" style="margin-top:8px;">
-                                <option value="prefix" ${s.buttonEmojiPosition === 'prefix' || !s.buttonEmojiPosition ? 'selected' : ''}>Emoji 在文字前</option>
-                                <option value="suffix" ${s.buttonEmojiPosition === 'suffix' ? 'selected' : ''}>Emoji 在文字後</option>
-                            </select>
-                            <div class="settings-help">不想顯示某個按鈕的 Emoji，可以把該按鈕的 Emoji 欄位清空。</div>
-                        </div>
+                        <label>已計分確認文字</label>
+                        <textarea id="settingManualScoreConfirmText" class="input-field">${Admin.esc(s.manualScoreConfirmText || '')}</textarea>
                     </div>
-                    ${Admin.renderButtonSettingRow('首頁登入按鈕', 'LoginButton', s.loginButtonText, s.loginButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('已測驗複習按鈕', 'ReviewModeButton', s.reviewModeButtonText, s.reviewModeButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('管理員由後台進入提示', 'InstructorEnterButton', s.instructorEnterButtonText, s.instructorEnterButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('管理員登入按鈕', 'AdminLoginButton', s.adminLoginButtonText, s.adminLoginButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('管理員已授權按鈕', 'AdminAuthorizedButton', s.adminAuthorizedButtonText, s.adminAuthorizedButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('開始考核按鈕', 'StartQuizButton', s.startQuizButtonText, s.startQuizButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('準備考核中按鈕', 'StartPreparingButton', s.startPreparingButtonText, s.startPreparingButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('提交答案按鈕', 'QuizSubmitButton', s.quizSubmitButtonText, s.quizSubmitButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('成績儲存中按鈕', 'ScoreSavingButton', s.scoreSavingButtonText, s.scoreSavingButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('作答檢查返回按鈕', 'ReviewBackButton', s.reviewBackButtonText, s.reviewBackButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('作答檢查確認按鈕', 'ReviewConfirmButton', s.reviewConfirmButtonText, s.reviewConfirmButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('作答檢查儲存中按鈕', 'ReviewSavingButton', s.reviewSavingButtonText, s.reviewSavingButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('結果頁回首頁按鈕', 'ResultHomeButton', s.resultHomeButtonText, s.resultHomeButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('教材頁退出按鈕', 'ViewExitButton', s.viewExitButtonText, s.viewExitButtonEmoji)}
-                    ${Admin.renderButtonSettingRow('回到後台按鈕', 'BackToAdminButton', s.backToAdminButtonText, s.backToAdminButtonEmoji)}
+                </div>
+
+                <div class="settings-card">
+                    <h4>後台設定｜題庫編輯提示文字</h4>
+                    <div class="settings-row">
+                        <label>題庫編輯上方說明</label>
+                        <textarea id="settingCourseEditorIntroText" class="input-field">${Admin.esc(s.courseEditorIntroText || '')}</textarea>
+                    </div>
+                    <div class="settings-row">
+                        <label>教材網址輸入框提示</label>
+                        <input id="settingMaterialUrlPlaceholder" class="input-field" value="${Admin.esc(s.materialUrlPlaceholder || '')}" placeholder="教材網址提示文字">
+                    </div>
+                    <div class="settings-row">
+                        <label>科目名稱輸入框提示</label>
+                        <input id="settingCourseTitlePlaceholder" class="input-field" value="${Admin.esc(s.courseTitlePlaceholder || '')}" placeholder="科目名稱提示文字">
+                    </div>
+                    <div class="settings-row">
+                        <label>及格分數輸入框提示</label>
+                        <input id="settingPassScorePlaceholder" class="input-field" value="${Admin.esc(s.passScorePlaceholder || '')}" placeholder="及格分數提示文字">
+                    </div>
+                    <div class="settings-row">
+                        <label>題庫內容說明</label>
+                        <textarea id="settingQuestionBankHelperText" class="input-field">${Admin.esc(s.questionBankHelperText || '')}</textarea>
+                    </div>
+                    <div class="settings-row">
+                        <label>題組名稱輸入框提示</label>
+                        <input id="settingQuestionGroupTitlePlaceholder" class="input-field" value="${Admin.esc(s.questionGroupTitlePlaceholder || '')}" placeholder="題組名稱提示文字">
+                    </div>
+                    <div class="settings-row">
+                        <label>題目內容輸入框提示</label>
+                        <input id="settingQuestionContentPlaceholder" class="input-field" value="${Admin.esc(s.questionContentPlaceholder || '')}" placeholder="題目內容提示文字">
+                    </div>
+                    <div class="settings-row">
+                        <label>簡答題參考答案提示</label>
+                        <input id="settingReferenceAnswerPlaceholder" class="input-field" value="${Admin.esc(s.referenceAnswerPlaceholder || '')}" placeholder="參考答案提示文字">
+                    </div>
+                    <div class="settings-row">
+                        <label>題組共用圖片標題</label>
+                        <input id="settingQuestionGroupSectionTitleText" class="input-field" value="${Admin.esc(s.questionGroupSectionTitleText || '')}" placeholder="題組共用圖片">
+                    </div>
+                    <div class="settings-row">
+                        <label>題組共用圖片說明</label>
+                        <textarea id="settingQuestionGroupHelperText" class="input-field">${Admin.esc(s.questionGroupHelperText || '')}</textarea>
+                    </div>
+                    <div class="settings-row">
+                        <label>題組新增按鈕文字</label>
+                        <input id="settingAddQuestionGroupButtonText" class="input-field" value="${Admin.esc(s.addQuestionGroupButtonText || '')}" placeholder="新增題組圖片">
+                    </div>
+                    <div class="settings-row">
+                        <label>題組上傳按鈕文字</label>
+                        <input id="settingUploadGroupImageButtonText" class="input-field" value="${Admin.esc(s.uploadGroupImageButtonText || '')}" placeholder="上傳圖片">
+                    </div>
+                    <div class="settings-row">
+                        <label>題組刪除按鈕文字</label>
+                        <input id="settingDeleteQuestionGroupButtonText" class="input-field" value="${Admin.esc(s.deleteQuestionGroupButtonText || '')}" placeholder="刪除題組">
+                    </div>
+                    <div class="settings-row">
+                        <label>各題使用題組圖片按鈕</label>
+                        <input id="settingUseGroupImageButtonText" class="input-field" value="${Admin.esc(s.useGroupImageButtonText || '')}" placeholder="使用題組圖片">
+                    </div>
+                    <div class="settings-row">
+                        <label>不使用題組圖片選項</label>
+                        <input id="settingNoGroupImageOptionText" class="input-field" value="${Admin.esc(s.noGroupImageOptionText || '')}" placeholder="不使用題組圖片">
+                    </div>
+                    <div class="settings-row">
+                        <label>尚未建立題組提醒</label>
+                        <textarea id="settingNoQuestionGroupAlertText" class="input-field">${Admin.esc(s.noQuestionGroupAlertText || '')}</textarea>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h4>後台設定｜後台按鈕文字與 Emoji</h4>
                     ${Admin.renderButtonSettingRow('後台進入教材/測驗', 'AdminCourseTesterButton', s.adminCourseTesterButtonText, s.adminCourseTesterButtonEmoji)}
                     ${Admin.renderButtonSettingRow('管理員登出按鈕', 'AdminLogoutButton', s.adminLogoutButtonText, s.adminLogoutButtonEmoji)}
                     ${Admin.renderButtonSettingRow('後台返回首頁按鈕', 'AdminSidebarHomeButton', s.adminSidebarHomeButtonText, s.adminSidebarHomeButtonEmoji)}
@@ -4752,6 +4832,7 @@ const Admin = {
                     ${Admin.renderButtonSettingRow('匯出備份按鈕', 'BackupExportButton', s.backupExportButtonText, s.backupExportButtonEmoji)}
                     ${Admin.renderButtonSettingRow('匯入備份按鈕', 'BackupImportButton', s.backupImportButtonText, s.backupImportButtonEmoji)}
                 </div>
+
                 <div class="settings-card settings-card-highlight" id="settingSectionSidebarMenu">
                     <h4>左側選單設定｜文字與圖示</h4>
                     <div class="settings-row">
@@ -4762,7 +4843,6 @@ const Admin = {
                                 <option value="prefix" ${s.sidebarMenuEmojiPosition === 'prefix' || !s.sidebarMenuEmojiPosition ? 'selected' : ''}>圖示在文字前</option>
                                 <option value="suffix" ${s.sidebarMenuEmojiPosition === 'suffix' ? 'selected' : ''}>圖示在文字後</option>
                             </select>
-                            <div class="settings-help">這裡只控制後台左側功能選單，例如測驗成績、教材題庫、系統設定、人員帳號。圖示欄位可輸入 emoji，也可以清空。</div>
                         </div>
                     </div>
                     ${Admin.renderMenuSettingRow('測驗成績選單', 'AdminScoreTab', s.adminScoreTabText, s.adminScoreTabEmoji)}
@@ -4770,7 +4850,7 @@ const Admin = {
                     ${Admin.renderMenuSettingRow('系統設定選單', 'AdminSettingsTab', s.adminSettingsTabText, s.adminSettingsTabEmoji)}
                     <div class="settings-row">
                         <label>系統設定選單副文字</label>
-                        <input id="settingAdminSettingsTabSubText" class="input-field" value="${Admin.esc(s.adminSettingsTabSubText || '')}" placeholder="例如：基本／進階／按鈕">
+                        <input id="settingAdminSettingsTabSubText" class="input-field" value="${Admin.esc(s.adminSettingsTabSubText || '')}" placeholder="可留空不顯示副文字">
                     </div>
                     ${Admin.renderMenuSettingRow('人員帳號選單', 'AdminRecTab', s.adminRecTabText, s.adminRecTabEmoji)}
                 </div>
@@ -4868,6 +4948,22 @@ const Admin = {
             scoreSyncTitle: (document.getElementById('settingScoreSyncTitle') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.scoreSyncTitle,
             scoreSyncMessage: (document.getElementById('settingScoreSyncMessage') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.scoreSyncMessage,
             scoreSyncNote: (document.getElementById('settingScoreSyncNote') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.scoreSyncNote,
+            courseEditorIntroText: (document.getElementById('settingCourseEditorIntroText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.courseEditorIntroText,
+            materialUrlPlaceholder: (document.getElementById('settingMaterialUrlPlaceholder') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.materialUrlPlaceholder,
+            courseTitlePlaceholder: (document.getElementById('settingCourseTitlePlaceholder') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.courseTitlePlaceholder,
+            passScorePlaceholder: (document.getElementById('settingPassScorePlaceholder') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.passScorePlaceholder,
+            questionBankHelperText: (document.getElementById('settingQuestionBankHelperText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.questionBankHelperText,
+            questionGroupTitlePlaceholder: (document.getElementById('settingQuestionGroupTitlePlaceholder') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.questionGroupTitlePlaceholder,
+            questionContentPlaceholder: (document.getElementById('settingQuestionContentPlaceholder') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.questionContentPlaceholder,
+            referenceAnswerPlaceholder: (document.getElementById('settingReferenceAnswerPlaceholder') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.referenceAnswerPlaceholder,
+            questionGroupSectionTitleText: (document.getElementById('settingQuestionGroupSectionTitleText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.questionGroupSectionTitleText,
+            questionGroupHelperText: (document.getElementById('settingQuestionGroupHelperText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.questionGroupHelperText,
+            addQuestionGroupButtonText: (document.getElementById('settingAddQuestionGroupButtonText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.addQuestionGroupButtonText,
+            uploadGroupImageButtonText: (document.getElementById('settingUploadGroupImageButtonText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.uploadGroupImageButtonText,
+            deleteQuestionGroupButtonText: (document.getElementById('settingDeleteQuestionGroupButtonText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.deleteQuestionGroupButtonText,
+            useGroupImageButtonText: (document.getElementById('settingUseGroupImageButtonText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.useGroupImageButtonText,
+            noGroupImageOptionText: (document.getElementById('settingNoGroupImageOptionText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.noGroupImageOptionText,
+            noQuestionGroupAlertText: (document.getElementById('settingNoQuestionGroupAlertText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.noQuestionGroupAlertText,
             accentColor: (document.getElementById('settingAccentColorText') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.accentColor,
             interfaceDensity: (document.getElementById('settingInterfaceDensity') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.interfaceDensity,
             panelWidth: (document.getElementById('settingPanelWidth') || {}).value || App.DEFAULT_SYSTEM_SETTINGS.panelWidth,
@@ -4958,7 +5054,7 @@ const Admin = {
         const rows = mats.map((m, mi) => `
             <div class="material-row ${mi === active ? '' : 'is-hidden'}" data-material-index="${mi}" data-material-id="${Admin.esc(m.id || `${course && course.id || 'course'}_mat_${mi + 1}`)}">
                 <select class="select-field material-editor-select" onchange="Admin.selectEditorMaterial(this)" aria-label="選擇要編輯的教材">${options}</select>
-                <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="可貼簡報、YouTube、Google Drive、mp4 或 iframe 嵌入碼">
+                <input type="text" class="input-field m-url" value="${Admin.esc(m.url || '')}" placeholder="${Admin.esc(App.getSystemSetting('materialUrlPlaceholder') || App.DEFAULT_SYSTEM_SETTINGS.materialUrlPlaceholder)}">
                 <button class="btn btn-primary btn-sm material-action-btn" onclick="Admin.addMaterial(${ci})">新增教材</button>
                 <button class="btn btn-danger btn-sm material-action-btn" onclick="Admin.delSelectedMaterial(${ci}, this)">移除教材</button>
                 <input type="hidden" class="m-title" value="${Admin.esc(m.title || `教材 ${mi + 1}`)}">
@@ -5194,20 +5290,20 @@ const Admin = {
             <div class="question-group-manager">
                 <div class="question-group-header">
                     <div>
-                        <div class="question-group-title">題組共用圖片</div>
-                        <div class="editor-helper">同一張參考圖可在此上傳一次，再讓多個題目選用，避免每題重複上傳。</div>
+                        <div class="question-group-title">${Admin.esc(App.getSystemSetting('questionGroupSectionTitleText') || App.DEFAULT_SYSTEM_SETTINGS.questionGroupSectionTitleText)}</div>
+                        <div class="editor-helper">${Admin.esc(App.getSystemSetting('questionGroupHelperText') || App.DEFAULT_SYSTEM_SETTINGS.questionGroupHelperText)}</div>
                     </div>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.addQuestionGroup(${ci})">➕ 新增題組圖片</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.addQuestionGroup(${ci})">➕ ${Admin.esc(App.getSystemSetting('addQuestionGroupButtonText') || App.DEFAULT_SYSTEM_SETTINGS.addQuestionGroupButtonText)}</button>
                 </div>
                 <div class="question-group-list">
                     ${groups.length ? groups.map((g, gi) => `
                         <div class="question-group-row" data-group-id="${Admin.esc(g.id)}">
-                            <input type="text" class="input-field qg-title" value="${Admin.esc(g.title || '')}" placeholder="題組名稱，例如：題組A／雷達圖">
+                            <input type="text" class="input-field qg-title" value="${Admin.esc(g.title || '')}" placeholder="${Admin.esc(App.getSystemSetting('questionGroupTitlePlaceholder') || App.DEFAULT_SYSTEM_SETTINGS.questionGroupTitlePlaceholder)}">
                             <input type="hidden" class="qg-img-data" value="${Admin.esc(g.imageData || '')}">
                             <div class="question-group-preview ${g.imageData ? 'has-image' : ''}">${g.imageData ? `<img src="${Admin.esc(g.imageData)}" alt="題組共用圖片" onclick="ImageLightbox.open(this.src)">` : ''}</div>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.qg-img-file').click()">上傳圖片</button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.qg-img-file').click()">${Admin.esc(App.getSystemSetting('uploadGroupImageButtonText') || App.DEFAULT_SYSTEM_SETTINGS.uploadGroupImageButtonText)}</button>
                             <input type="file" class="qg-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionGroupImage(this)">
-                            <button type="button" class="btn btn-danger btn-sm" onclick="Admin.removeQuestionGroup(${ci}, ${gi})">刪除題組</button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="Admin.removeQuestionGroup(${ci}, ${gi})">${Admin.esc(App.getSystemSetting('deleteQuestionGroupButtonText') || App.DEFAULT_SYSTEM_SETTINGS.deleteQuestionGroupButtonText)}</button>
                         </div>
                     `).join('') : ''}
                 </div>
@@ -5222,7 +5318,7 @@ const Admin = {
         App.lastOpenedCourseId = course.id;
         App.saveLocalOnly();
         Admin.renderEditor();
-        Backend.setStatus('已新增題組圖片，請上傳圖片後按「儲存變更」寫入 Supabase', 'var(--warning-color)');
+        Backend.setStatus(App.getSystemSetting('addQuestionGroupStatusText') || App.DEFAULT_SYSTEM_SETTINGS.addQuestionGroupStatusText, 'var(--warning-color)');
     },
     removeQuestionGroup: function(ci, gi) {
         Admin.sync(true);
@@ -5270,7 +5366,7 @@ const Admin = {
         const select = tools ? tools.querySelector('.q-group-id') : null;
         if (!select) return;
         if (select.options.length <= 1) {
-            return alert('尚未新增題組圖片。請先在上方「題組共用圖片」新增並上傳圖片。');
+            return alert(App.getSystemSetting('noQuestionGroupAlertText') || App.DEFAULT_SYSTEM_SETTINGS.noQuestionGroupAlertText);
         }
         select.classList.toggle('hidden');
         if (!select.classList.contains('hidden')) select.focus();
@@ -5286,7 +5382,7 @@ const Admin = {
             <div class="sticky-header">
                 <div>
                     <h3>📚 教材與題庫編輯</h3>
-                    <div class="editor-helper" style="margin-top:6px;">編輯科目、教材與題庫，或拖拉科目卡片調整順序後，記得按下儲存變更才會生效。</div>
+                    <div class="editor-helper" style="margin-top:6px;">${Admin.esc(App.getSystemSetting('courseEditorIntroText') || App.DEFAULT_SYSTEM_SETTINGS.courseEditorIntroText)}</div>
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-template btn-sm" onclick="Admin.downloadTemplate()"><span class="btn-icon-mono">⇩</span> 下載範本</button>
@@ -5313,11 +5409,11 @@ const Admin = {
                         <div class="course-compact-row">
                             <div>
                                 <label>科目名稱</label>
-                                <input type="text" class="input-field c-title" value="${Admin.esc(c.title || '')}" placeholder="請輸入科目名稱">
+                                <input type="text" class="input-field c-title" value="${Admin.esc(c.title || '')}" placeholder="${Admin.esc(App.getSystemSetting('courseTitlePlaceholder') || App.DEFAULT_SYSTEM_SETTINGS.courseTitlePlaceholder)}">
                             </div>
                             <div>
                                 <label>及格分數</label>
-                                <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" min="0" max="100" class="input-field c-pass-score no-spinner" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="及格分數">
+                                <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" min="0" max="100" class="input-field c-pass-score no-spinner" value="${Number.isFinite(Number(c.passScore)) ? Number(c.passScore) : 80}" placeholder="${Admin.esc(App.getSystemSetting('passScorePlaceholder') || App.DEFAULT_SYSTEM_SETTINGS.passScorePlaceholder)}">
                             </div>
                             <div class="material-field">
                                 <label>教材清單／教材網址</label>
@@ -5329,7 +5425,7 @@ const Admin = {
                         <div class="question-toolbar">
                             <div>
                                 <h4>題庫內容</h4>
-                                <div class="editor-helper">可手動新增題目，或用 CSV 匯入／匯出題庫；按「選項」可展開編輯。</div>
+                                <div class="editor-helper">${Admin.esc(App.getSystemSetting('questionBankHelperText') || App.DEFAULT_SYSTEM_SETTINGS.questionBankHelperText)}</div>
                             </div>
                             <div class="question-actions">
                                 <button class="btn btn-question-export btn-sm" onclick="Admin.exportCourseQuestions(${ci})">📤 匯出題庫</button>
@@ -5355,14 +5451,14 @@ const Admin = {
                                         <button class="btn btn-danger btn-sm" onclick="Admin.delQ(${ci}, ${qi})">移除</button>
                                     </div>
                                 </div>
-                                <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="請輸入題目內容">
+                                <input type="text" class="input-field q-t" value="${Admin.esc(q.q)}" placeholder="${Admin.esc(App.getSystemSetting('questionContentPlaceholder') || App.DEFAULT_SYSTEM_SETTINGS.questionContentPlaceholder)}">
                                 <input type="hidden" class="q-img-data" value="${Admin.esc(q.imageData || '')}">
                                 <div class="q-image-tools q-image-source-tools">
                                     <button type="button" class="btn btn-outline btn-sm" onclick="this.parentElement.querySelector('.q-img-file').click()">上傳參考圖片</button>
                                     <input type="file" class="q-img-file hidden" accept="image/*" onchange="Admin.uploadQuestionImage(this)">
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.toggleQuestionGroupPicker(this)">使用題組圖片</button>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="Admin.toggleQuestionGroupPicker(this)">${Admin.esc(App.getSystemSetting('useGroupImageButtonText') || App.DEFAULT_SYSTEM_SETTINGS.useGroupImageButtonText)}</button>
                                     <select class="select-field q-group-id q-group-picker ${q.imageGroupId ? '' : 'hidden'}" onchange="Admin.updateQuestionImageSource(this)">
-                                        <option value="">不使用題組圖片</option>
+                                        <option value="">${Admin.esc(App.getSystemSetting('noGroupImageOptionText') || App.DEFAULT_SYSTEM_SETTINGS.noGroupImageOptionText)}</option>
                                         ${Admin.getQuestionGroups(c).map(g => `<option value="${Admin.esc(g.id)}" ${String(q.imageGroupId || '') === String(g.id) ? 'selected' : ''}>${Admin.esc(g.title || '題組圖片')}</option>`).join('')}
                                     </select>
                                     <button type="button" class="btn btn-danger btn-sm ${q.imageData ? '' : 'hidden'} q-img-remove" onclick="Admin.removeQuestionImage(this)">移除圖片</button>
@@ -5370,7 +5466,7 @@ const Admin = {
                                 <div class="q-image-preview ${q.imageData ? 'has-image' : ''}">${q.imageData ? `<img src="${Admin.esc(q.imageData)}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)">` : ''}</div>
                                 <div class="q-reference-answer-wrap">
                                     <label class="q-reference-answer-label">簡答題參考答案</label>
-                                    <textarea class="q-reference-answer" placeholder="可輸入批改用參考答案，學生作答時不會顯示">${Admin.esc(q.referenceAnswer || q.correctAnswerText || '')}</textarea>
+                                    <textarea class="q-reference-answer" placeholder="${Admin.esc(App.getSystemSetting('referenceAnswerPlaceholder') || App.DEFAULT_SYSTEM_SETTINGS.referenceAnswerPlaceholder)}">${Admin.esc(q.referenceAnswer || q.correctAnswerText || '')}</textarea>
                                 </div>
 
                                 <div class="q-options-grid" hidden style="${(q.type || 'choice') === 'truefalse' ? '' : 'display:none !important;'}">
