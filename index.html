@@ -2723,6 +2723,89 @@ body.question-sort-active .editor-helper {
             body[data-login-position="right"] #sec-login .login-panel { margin-left: auto !important; margin-right: auto !important; }
         }
 
+
+        /* vNEXT：多裝置結果頁與後台頁首頁尾按鈕可見性 */
+        #sec-res.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            overflow-y: auto;
+            padding-bottom: 96px;
+        }
+        #sec-res #finalScore {
+            font-size: 60px !important;
+            line-height: 1.1 !important;
+        }
+        #resultHomeBtn {
+            position: sticky;
+            bottom: 16px;
+            z-index: 3000;
+            margin-top: 14px;
+            min-width: 128px;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.38);
+        }
+        #sec-res .result-answer-area {
+            max-height: min(42vh, 420px);
+        }
+        .admin-mobile-jump-tools {
+            position: fixed;
+            right: 14px;
+            bottom: 14px;
+            z-index: 4500;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #sec-admin.active .admin-mobile-jump-tools {
+            display: flex;
+        }
+        .admin-mobile-jump-tools .btn {
+            width: 48px;
+            height: 42px;
+            padding: 0;
+            border-radius: 999px;
+            font-size: 15px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        }
+        @media (max-width: 1024px) {
+            #sec-res.active {
+                min-height: calc(100vh - 20px);
+            }
+            @supports (height: 100dvh) {
+                #sec-res.active { min-height: calc(100dvh - 20px); }
+            }
+            #sec-res > div {
+                margin-top: 0 !important;
+                padding-bottom: 72px;
+            }
+            #sec-res #finalScore {
+                font-size: 60px !important;
+            }
+            #resultHomeBtn {
+                bottom: 12px;
+            }
+        }
+        @media (max-width: 760px) {
+            #sec-res.active {
+                padding: 18px 14px 98px;
+            }
+            #sec-res h1 {
+                font-size: 24px;
+                margin-bottom: 8px;
+            }
+            #sec-res #finalScore {
+                font-size: 60px !important;
+            }
+            #sec-res .result-answer-area {
+                max-height: 48vh;
+                margin-bottom: 18px;
+            }
+            #resultHomeBtn {
+                width: min(260px, 92vw);
+                bottom: 12px;
+            }
+        }
+
 </style>
 </head>
 <body oncontextmenu="return false;"> 
@@ -2779,7 +2862,7 @@ body.question-sort-active .editor-helper {
         <div id="sec-res" class="section">
             <div style="margin:auto; text-align:center; width:min(960px, 100%);">
                 <h1>考核結果</h1>
-                <div id="finalScore" style="font-size:100px; color:var(--success-color); font-weight:bold;">0</div>
+                <div id="finalScore" style="font-size:60px; color:var(--success-color); font-weight:bold; line-height:1.1;">0</div>
                 <div id="resultPassNote" style="margin:0 0 12px 0; font-size:18px; font-weight:bold;"></div>
                 <div id="resultAnswerArea" class="result-answer-area hidden"></div>
                 <button id="resultHomeBtn" class="btn btn-primary" onclick="App.toHome()">回到首頁</button>
@@ -2871,7 +2954,7 @@ const PASS_SCORE = 80;
 // ================= Supabase 後端設定 =================
 // Supabase URL 與 anon key 請設定在同層的 config.js。
 // 若 config.js 未設定或未載入，系統會維持本機 localStorage 模式，方便測試。
-const APP_BUILD_VERSION = 'V001';
+const APP_BUILD_VERSION = 'V001-review-no-ref-v2';
 
 const SUPABASE_URL = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_URL) ? window.ATC_CONFIG.SUPABASE_URL.trim() : "";
 const SUPABASE_ANON_KEY = (window.ATC_CONFIG && window.ATC_CONFIG.SUPABASE_ANON_KEY) ? window.ATC_CONFIG.SUPABASE_ANON_KEY.trim() : "";
@@ -7071,7 +7154,6 @@ const Quiz = {
                         <div class="review-q-title">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
                         ${getQuestionDisplayImage(q, App.activeCourse) ? `<div class="review-question-image"><img src="${getQuestionDisplayImage(q, App.activeCourse)}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                         <div class="review-short-answer-label">簡答內容</div><div class="review-short-answer-box">${Admin.esc(String(selectedIndex || '（未填寫）'))}</div>
-                        <div class="review-short-answer-label">參考答案</div><div class="review-short-answer-box">${Admin.esc(String(q.referenceAnswer || q.correctAnswerText || '（未設定）'))}</div>
                     </div>`;
                 }
                 const selectedText = q.o[selectedIndex] || '';
@@ -7082,6 +7164,14 @@ const Quiz = {
                 </div>`;
             }).join('')}
         `;
+        // 安全保險：作答內容檢查只給學生確認自己的作答，不能顯示簡答題參考答案。
+        body.querySelectorAll('.review-short-answer-label').forEach(label => {
+            if (String(label.textContent || '').includes('參考答案')) {
+                const valueBox = label.nextElementSibling;
+                if (valueBox) valueBox.remove();
+                label.remove();
+            }
+        });
         overlay.classList.add('active');
         overlay.setAttribute('aria-hidden', 'false');
         this.resetReviewModal();
