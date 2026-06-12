@@ -7291,7 +7291,7 @@ const Quiz = {
                         <div class="result-answer-question">Q${i + 1}：${Admin.esc(q.q)} <span class="manual-score-badge">人工計分</span></div>
                         ${getQuestionDisplayImage(q, App.activeCourse) ? `<div class="result-question-image"><img src="${getQuestionDisplayImage(q, App.activeCourse)}" alt="題目參考圖片" onclick="ImageLightbox.open(this.src)"></div>` : ''}
                         <div class="result-short-answer-label">你的簡答作答</div><div class="result-short-answer-box">${Admin.esc(String(userIndex || '（未填寫）'))}</div>
-                        <div class="result-short-answer-label" style="color:var(--success-color);">參考答案</div><div class="result-short-answer-box" style="color:var(--success-color); font-weight:700;">${Admin.esc(String(q.referenceAnswer || q.correctAnswerText || '（未設定）'))}</div>
+                        <div class="result-short-answer-label">參考答案</div><div class="result-short-answer-box" style="color:var(--success-color); font-weight:700;">${Admin.esc(String(q.referenceAnswer || q.correctAnswerText || '（未設定）'))}</div>
                     </div>`;
                 }
                 const correctIndex = q.a;
